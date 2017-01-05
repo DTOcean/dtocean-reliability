@@ -1,0 +1,10 @@
+{'array':{'Export cable': {'quantity': Counter({'id6': 1})}, 'Substation': {'quantity': Counter({})}},
+'subhub001': {'Substation': {'quantity': Counter({'id3': 1})}, 'Elec sub-system': {'quantity': Counter({'id6': 1})}},
+'subhub002': {'Substation': {'quantity': Counter({'id3': 1})}, 'Elec sub-system': {'quantity': Counter({'id6': 1})}},
+'device001': {'quantity': Counter({'id6': 1, 'id7': 1})},
+'device002': {'quantity': Counter({'id6': 1, 'id7': 1})},
+'device003': {'quantity': Counter({'id6': 1, 'id7': 1})},
+'device004': {'quantity': Counter({'id6': 1, 'id7': 1})},
+'device005': {'quantity': Counter({'id6': 1, 'id7': 1})},
+'device006': {'quantity': Counter({'id6': 1, 'id7': 1})},
+}
