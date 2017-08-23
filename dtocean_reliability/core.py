@@ -1,23 +1,26 @@
 """
-Release Version of the DTOcean:Reliability Assessment Module (RAM): 17/10/16
+DTOcean Reliability Assessment Module (RAM)
 Developed by: Renewable Energy Research Group, University of Exeter
+              Mathew Topper
 """
-# Start logging
-import logging
-module_logger = logging.getLogger(__name__)
 
-# Built in modulesrad
+# Built in modules
 import os
 import csv
 import copy
 import math
 import time
+import logging
 import itertools
 from collections import Counter, OrderedDict, Sequence, defaultdict
 
 # External module import
 import numpy as np
 import pandas as pd
+
+# Start logging
+module_logger = logging.getLogger(__name__)
+
  
 class Syshier(object):
     """
@@ -179,8 +182,15 @@ class Syshier(object):
         self.complist = list(OrderedDict.fromkeys(self.complist))  
         
         if self.fullset == 'False':
-            self.complist.append('dummy')        
-        if 'n/a' in self.complist: self.complist.remove('n/a')  
+            self.complist.append('dummy')
+        
+        # Will only remove one if this is desired
+        if 'n/a' in self.complist: self.complist.remove('n/a')
+        
+        # Remove "not required"
+        self.complist = [comp for comp in self.complist
+                                         if not "not required" in str(comp)]
+        
         if calcscenario == 'lower':
             cs = 0
         elif calcscenario == 'mean':
@@ -1348,52 +1358,60 @@ class Syshier(object):
         module_logger.info("\n".join(logmsg))
 
     def rpn(self):
-        def comprpn(complist):
-            """ RPN calculation """          
-            """ Frequency definitions can be found in Deliverable 7.2 """
-            probf = [0 for rows in range(0,len(complist))]
-            freq = [0 for rows in range(0,len(complist))]
-            rpn = [0 for rows in range(0,len(complist))]
-            mc = [0 for rows in range(0,len(complist))]
+        """ RPN calculation. Frequency definitions can be found in
+        Deliverable 7.2
+        """
+        
+        complist = self.compfrvalueslist[:]
+        
+        probf = [0 for rows in range(0,len(complist))]
+        freq = [0 for rows in range(0,len(complist))]
+        rpn = [0 for rows in range(0,len(complist))]
+        mc = [0 for rows in range(0,len(complist))]
+        
+        for compind, comps in enumerate(complist):           
             
-            for compind, comps in enumerate(complist):                 
-                """ Convert failures/10^6 hours to % failures/year """
-                probf[compind] = 100.0 * (1.0 - math.exp(-comps[1] * 365.25 * 24.0 * 10.0 ** -6.0))                
-                if probf[compind] < 0.01:
-                    freq[compind] = 0.0
-                elif probf[compind] >= 0.01 and probf[compind] < 0.1:
-                    freq[compind] = 1.0
-                elif probf[compind] >= 0.1 and probf[compind] < 1.0:
-                    freq[compind] = 2.0
-                elif probf[compind] >= 1.0 and probf[compind] < 10.0:
-                    freq[compind] = 3.0
-                elif probf[compind] >= 10.0 and probf[compind] < 50.0:
-                    freq[compind] = 4.0
-                elif probf[compind] >= 50.0:
-                    freq[compind] = 5.0
-                if self.severitylevel == 'critical':
-                    rpn[compind] = 2.0 * freq[compind]
-                elif self.severitylevel == 'non-critical':
-                    rpn[compind] = 1.0 * freq[compind]    
-                if rpn[compind] <= 2.0:
-                    mc[compind] = 'green'
-                elif rpn[compind] > 2.0 and rpn[compind] < 5.0:
-                    mc[compind] = 'yellow'
-                elif rpn[compind] >= 5.0 and rpn[compind] <= 7.0:
-                    mc[compind] = 'orange'
-                elif rpn[compind] > 7.0:
-                    mc[compind] = 'red'  
-            rpnvalues = zip(*[probf, rpn])
+            # Convert failures/10^6 hours to % failures/year
+            year_hours = 365.25 * 24.0
+            probf[compind] = 100.0 * (1.0 -
+                             math.exp(-comps[1] * year_hours * 10.0 ** -6.0))
+                
+            if probf[compind] < 0.01:
+                freq[compind] = 0.0
+            elif probf[compind] >= 0.01 and probf[compind] < 0.1:
+                freq[compind] = 1.0
+            elif probf[compind] >= 0.1 and probf[compind] < 1.0:
+                freq[compind] = 2.0
+            elif probf[compind] >= 1.0 and probf[compind] < 10.0:
+                freq[compind] = 3.0
+            elif probf[compind] >= 10.0 and probf[compind] < 50.0:
+                freq[compind] = 4.0
+            elif probf[compind] >= 50.0:
+                freq[compind] = 5.0
             
-            # Filter out dummy values
-            self.complist = [x for x in self.complist if x != 'dummy']
-            rpnvalues = [x for x, y in zip(rpnvalues, self.complist)
-                                                            if y != 'dummy']
-            self.rpncomptab = pd.DataFrame(rpnvalues,
-                                           index=self.complist,
-                                           columns=['Probability of failure %',
-                                                    'Risk Priority Number'])   
-            
-        self.rpncompvalues = comprpn(self.compfrvalueslist)
- 
-
+            if self.severitylevel == 'critical':
+                rpn[compind] = 2.0 * freq[compind]
+            elif self.severitylevel == 'non-critical':
+                rpn[compind] = 1.0 * freq[compind]    
+            if rpn[compind] <= 2.0:
+                mc[compind] = 'green'
+            elif rpn[compind] > 2.0 and rpn[compind] < 5.0:
+                mc[compind] = 'yellow'
+            elif rpn[compind] >= 5.0 and rpn[compind] <= 7.0:
+                mc[compind] = 'orange'
+            elif rpn[compind] > 7.0:
+                mc[compind] = 'red'
+                
+        rpnvalues = zip(*[probf, rpn])
+        
+        # Filter out dummy values
+        self.complist = [x for x in self.complist if x != 'dummy']
+        rpnvalues = [x for x, y in zip(rpnvalues, self.complist)
+                                                        if y != 'dummy']
+        
+        self.rpncomptab = pd.DataFrame(rpnvalues,
+                                       index=self.complist,
+                                       columns=['Probability of failure %',
+                                                'Risk Priority Number'])   
+        
+        return
