@@ -1,24 +1,26 @@
 """
-Release Version of the DTOcean:Reliability Assessment Module (RAM): 17/10/16
+DTOcean Reliability Assessment Module (RAM)
 Developed by: Renewable Energy Research Group, University of Exeter
+              Mathew Topper
 """
-# Start logging
-import logging
-module_logger = logging.getLogger(__name__)
 
 # Built in modules
 import os
 import csv
 import math
 import pprint
+import logging
 from copy import deepcopy
+from collections import Counter
 
 # External modules
 import pandas as pd
 import numpy as np
-from collections import Counter
 
 from .core import Syshier
+
+# Start logging
+module_logger = logging.getLogger(__name__)
 
 
 class Variables(object):
