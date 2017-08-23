@@ -7,6 +7,7 @@ from distutils.cmd import Command
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
+
 class PyTest(TestCommand):
     user_options = [('pytest-args=', 'a', "Arguments to pass to py.test")]
 
@@ -24,6 +25,7 @@ class PyTest(TestCommand):
         import pytest
         errno = pytest.main(self.pytest_args)
         sys.exit(errno)
+
         
 class CleanPyc(Command):
 
@@ -64,7 +66,7 @@ class CleanPyc(Command):
 
 
 setup(name='dtocean-reliability',
-      version='1.0.0',
+      version='1.1.dev0',
       description='The reliability assessment module for the DTOcean tools',
       author=('Sam Weller, '
               'Jon Hardwick, '
