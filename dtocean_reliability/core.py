@@ -189,7 +189,7 @@ class Syshier(object):
         
         # Remove "not required"
         self.complist = [comp for comp in self.complist
-                                         if not "not required" in str(comp)]
+                                         if "not required" not in str(comp)]
         
         if calcscenario == 'lower':
             cs = 0
@@ -1364,17 +1364,17 @@ class Syshier(object):
         
         complist = self.compfrvalueslist[:]
         
-        probf = [0 for rows in range(0,len(complist))]
-        freq = [0 for rows in range(0,len(complist))]
-        rpn = [0 for rows in range(0,len(complist))]
-        mc = [0 for rows in range(0,len(complist))]
+        probf = [0 for rows in range(0, len(complist))]
+        freq = [0 for rows in range(0, len(complist))]
+        rpn = [0 for rows in range(0, len(complist))]
+        mc = [0 for rows in range(0, len(complist))]
         
-        for compind, comps in enumerate(complist):           
+        for compind, comps in enumerate(complist):
             
             # Convert failures/10^6 hours to % failures/year
             year_hours = 365.25 * 24.0
-            probf[compind] = 100.0 * (1.0 -
-                             math.exp(-comps[1] * year_hours * 10.0 ** -6.0))
+            probf[compind] = 100.0 * (1.0 - math.exp(-comps[1] *
+                                                  year_hours * 10.0 ** -6.0))
                 
             if probf[compind] < 0.01:
                 freq[compind] = 0.0
@@ -1392,7 +1392,7 @@ class Syshier(object):
             if self.severitylevel == 'critical':
                 rpn[compind] = 2.0 * freq[compind]
             elif self.severitylevel == 'non-critical':
-                rpn[compind] = 1.0 * freq[compind]    
+                rpn[compind] = 1.0 * freq[compind]
             if rpn[compind] <= 2.0:
                 mc[compind] = 'green'
             elif rpn[compind] > 2.0 and rpn[compind] < 5.0:
@@ -1412,6 +1412,6 @@ class Syshier(object):
         self.rpncomptab = pd.DataFrame(rpnvalues,
                                        index=self.complist,
                                        columns=['Probability of failure %',
-                                                'Risk Priority Number'])   
+                                                'Risk Priority Number'])
         
         return
