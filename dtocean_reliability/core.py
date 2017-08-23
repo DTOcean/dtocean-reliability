@@ -514,8 +514,8 @@ class Syshier(object):
         self.rcompvalues = rcompmt(self.frvalues2)     
         self.rcompvalues2 = copy.deepcopy(self.rcompvalues)        
         self.rcompvalues3 = copy.deepcopy(self.rcompvalues)
-        fil = open('RAM_outputs.txt','w');
-        fil.write('%%%%%%%%%%%%%%%%%%Reliability Values%%%%%%%%%%%%%%%%%%\r\n\r\nself.rcompvalues2\r\n')
+        # fil = open('RAM_outputs.txt','w');
+        # fil.write('%%%%%%%%%%%%%%%%%%Reliability Values%%%%%%%%%%%%%%%%%%\r\n\r\nself.rcompvalues2\r\n')
         # for i in range(0,len(self.rcompvalues2)):
         # np.savetxt(fil,np.array(self.rcompvalues2),fmt='%s',delimiter='\t')
         # logmsg = [""]

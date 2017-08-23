@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Stopped production of RAM_outputs.txt file.
+
 ### Fixed
 
 - Fixed bug where foundations that were "not required"  would break the
