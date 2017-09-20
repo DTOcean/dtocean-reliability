@@ -547,11 +547,11 @@ class Syshier(object):
                                     if rparadict[x]: rgrouppara[x].append(1 - np.prod(rparadict[x]))                                
                                 if rsingdict[x]: rgroupsing[x].append(rsingdict[x]) 
                                 if frserdict[x]: frgroupser[x].append(sum(frserdict[x]))
-                                if frparadict[x]: frgrouppara[x].append(self.binomial(frparadict[x].values())) 
+                                if frparadict[x]: frgrouppara[x].append(binomial(frparadict[x].values())) 
                                 if frsingdict[x]: frgroupsing[x].append(frsingdict[x])
                         if any(rgrouppara): 
                             for subsys in rgrouppara:
-                                rgroup.append(('SER', subsys, comps[3], 1 - np.prod(rgrouppara[subsys]), self.binomial(frgrouppara[subsys])))                        
+                                rgroup.append(('SER', subsys, comps[3], 1 - np.prod(rgrouppara[subsys]), binomial(frgrouppara[subsys])))                        
                         if any(rgroupser): 
                             for subsys in rgroupser:
                                 if (self._variables.eleclayout in ('singlesidedstring', 'doublesidedstring') and subsys == 'Array elec sub-system'):
@@ -588,7 +588,7 @@ class Syshier(object):
                                     """ Parallel components within user-defined sub-systems """
                                     for rparavals in rgroupser[subsys]:                                        
                                         rgroupserpara.append(1 - rparavals)
-                                    rgroup.append(('SER', subsys, comps[3], 1.0 - np.prod(rgroupserpara), self.binomial(frgroupser[subsys])))  
+                                    rgroup.append(('SER', subsys, comps[3], 1.0 - np.prod(rgroupserpara), binomial(frgroupser[subsys])))  
                         """ Single subsystem in parallel configuration """                                                
                         if any(rsingdict): 
                             for subsys in rgroupsing:
@@ -628,7 +628,7 @@ class Syshier(object):
                             if rserdict[x]: rgroupser[x] = np.prod(rserdict[x])
                             if rparadict[x]: rgrouppara[x]  = 1 - np.prod(rparadict[x]) 
                             if frserdict[x]: frgroupser[x] = sum(frserdict[x])
-                            if frparadict[x]: frgrouppara[x].append(self.binomial(frparadict[x].values()))
+                            if frparadict[x]: frgrouppara[x].append(binomial(frparadict[x].values()))
                             if rgroupser[x]: rgroup.append(('SER', x, comps[3], rgroupser[x], frgroupser[x])) 
                             if rgrouppara[x]: rgroup.append(('SER', x, comps[3], rgrouppara[x], frgrouppara[x]))                        
                             if rsingdict[x]: rgroup.append((comps[0], x, comps[3], rsingdict[x], frsingdict[x]))
@@ -665,7 +665,7 @@ class Syshier(object):
                         if rserdict[x]: rgroupser[x] = np.prod(rserdict[x])
                         if rparadict[x]: rgrouppara[x]  = 1 - np.prod(rparadict[x]) 
                         if frserdict[x]: frgroupser[x] = sum(frserdict[x])
-                        if frparadict[x]: frgrouppara[x].append(self.binomial(frparadict[x].values()))
+                        if frparadict[x]: frgrouppara[x].append(binomial(frparadict[x].values()))
                     if any(rserdict):
                         for subsys in rserdict:
                             if rgroupser[subsys] and len(rserdict[subsys]) == self.subsyslendict[subsys]: 
@@ -673,7 +673,7 @@ class Syshier(object):
                     if any(rparadict):
                         for subsys in rparadict:
                             if rgrouppara[subsys] and len(rparadict[subsys]) == self.subsyslendict[subsys]: 
-                                rgroup.append(('SER', subsys, comps[3], rgrouppara[subsys], self.binomial(frgrouppara[subsys])))                            
+                                rgroup.append(('SER', subsys, comps[3], rgrouppara[subsys], binomial(frgrouppara[subsys])))                            
                     if any(rsingdict):                 
                         for subsys in rsingdict: 
                             if (subsys == lst3[index3][2] and self.subsyslendict[subsys] == 1): 
@@ -725,7 +725,7 @@ class Syshier(object):
                                 frpara.append(subsys[4])
                             if subsys[1] == 'Array elec sub-system':
                                 relec = (subsys[0], subsys[1], subsys[2], subsys[3], subsys[4])
-                        if rpara: rgroup.append(('PAR', subsys[2], 1 - np.prod(rpara), self.binomial(frpara), relec))
+                        if rpara: rgroup.append(('PAR', subsys[2], 1 - np.prod(rpara), binomial(frpara), relec))
                         if rser: rgroup.append(('SER', subsys[2], np.prod(rser), sum(frser),relec))
                         if item3[0][1] in ('Substation', 'Export Cable'):                            
                             lst3[index3] = item3[0]                      
@@ -948,7 +948,7 @@ class Syshier(object):
                                     rsubhub.append(subhub)
                             if rpara:
                                 rgrouppara = 1 - np.prod(rpara)
-                                frgrouppara = self.binomial(frpara)
+                                frgrouppara = binomial(frpara)
                                 rsubhub.append(('SER', subhublabel, rgrouppara,frgrouppara))
                             """ Subhubs are assumed to be connected in parallel with 
                             the main hub """  
@@ -1001,7 +1001,7 @@ class Syshier(object):
                         frser.append(item3[4])     
                     if rpara:                
                         rgrouppara = 1.0 - np.prod(rpara)
-                        frgrouppara = self.binomial(frpara)
+                        frgrouppara = binomial(frpara)
                         rgroupparacomb.append((rgrouppara,frgrouppara))                        
                     if rparaser:                        
                         rgroupparaser = np.prod(rparaser)
@@ -1036,8 +1036,8 @@ class Syshier(object):
                     frstringcomb.append(strings[1])  
                 # frstringcomb = np.reciprocal(frstringcomb)
                 
-                # rgroup.append((1 - np.prod(rstringcomb), np.reciprocal(self.binomial(frstringcomb))))            
-                rgroup.append((1 - np.prod(rstringcomb), self.binomial(frstringcomb)))
+                # rgroup.append((1 - np.prod(rstringcomb), np.reciprocal(binomial(frstringcomb))))            
+                rgroup.append((1 - np.prod(rstringcomb), binomial(frstringcomb)))
 
             if self._variables.eleclayout in ('radial', 'singlesidedstring', 'doublesidedstring'):
                 rarraycomb = []
@@ -1050,7 +1050,7 @@ class Syshier(object):
                 """ Subhubs are assumed to be connected in parallel with 
                 the main hub """
                 rarrayser = (1-np.prod(rsubhubser)) * np.prod(rarrayser)
-                frarrayser = self.binomial(frsubhubser) + sum(frarrayser)
+                frarrayser = binomial(frsubhubser) + sum(frarrayser)
                 rarray = [rarrayser, frarrayser] 
             return ('array', rarray[0], rarray[1]) 
             
