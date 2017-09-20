@@ -28,6 +28,7 @@ class Syshier(object):
     """
     def __init__(self, variables):        
         self._variables = variables
+        self.mttfpass = None
         
     def arrayhiersub(self):        
         self.founddelflag = 'False'
@@ -1294,10 +1295,12 @@ class Syshier(object):
             failMsg = "Fail: calculated MTTF less than required value!"
             passMsg = "Pass: calculated MTTF greater than required value"
             
-            if self._variables.mttfreq > self.mttfarray[1]:
-                logmsg.append(failMsg)
-            else:
+            self.mttfpass = self._variables.mttfreq < self.mttfarray[1]
+            
+            if self.mttfpass:
                 logmsg.append(passMsg)
+            else:
+                logmsg.append(failMsg)
                 
             module_logger.info("\n".join(logmsg))
 
