@@ -1104,39 +1104,10 @@ class Syshier(object):
         # logmsg = [""]
         # logmsg.append(' self.mttfcompvalues  {}'.format( self.mttfcompvalues))
         # module_logger.info("\n".join(logmsg))  
-
-#        
-        def subsysmttf(lst3):
-            """ Subsystem level MTTF calculation based on PAR/SER hierarchy """
-            newlst3 = lst3[:]
-            self.int = []          
-            for index3, item3 in enumerate(lst3):
-                ttfsubsys = []
-                if type(item3) is list:  
-                    if any(isinstance(self.int, list) for self.int in item3):                       
-                        lst3[index3] = subsysmttf(lst3[index3])  
-                    else:   
-                        if isinstance(item3, list):                             
-                            for subsys in item3:
-                                if subsys[0] == 'PAR':
-                                    for subsubsys in subsys[1]:
-                                        frs = subsubsys[4]
-                                        ttfsubsys.append((subsubsys[0], subsubsys[1], subsubsys[2], frs ** -1.0)) 
-                                else:
-                                    if (self._variables.eleclayout in ('singlesidedstring', 'doublesidedstring') and type(subsys[4]) is list):
-                                        frs = self.binomial(subsys[4])
-                                        ttfsubsys.append((subsys[0], subsys[1], subsys[2], frs ** -1.0)) 
-                                    else:
-                                        frs = subsys[4]                                       
-                                        ttfsubsys.append((subsys[0], subsys[1], subsys[2], frs ** -1.0)) 
-                            lst3[index3] = ttfsubsys 
-                elif (self._variables.eleclayout == 'multiplehubs' and item3[0] == 'PAR' and item3[1][0][0][2][0:6] == 'subhub'):
-                    lst3[index3] = subsysmttf(lst3[index3][1])  
-                else:                    
-                    lst3[index3] = (item3[0], item3[1], item3[2], item3[4] ** -1.0)
-                newlst3[index3] = lst3[index3] 
-            return newlst3    
-        self.mttfsubsys = subsysmttf(self.rsubsysvalues2)
+        
+        self.rsubsysvalues2 = subsysmttf(self.rsubsysvalues2,
+                                         self._variables.eleclayout)
+        
         # fil.write('\r\n\r\nself.mttfsubsys\r\n')
         # np.savetxt(fil,self.mttfsubsys,fmt='%s',delimiter='\t')
         # logmsg = [""]
@@ -1424,3 +1395,38 @@ def binomial(frpara):
     frparacalc = np.reciprocal(frparacalc)
     return frparacalc   
 
+
+def subsysmttf(failure_rate_network, eleclayout):
+    """ Subsystem level MTTF calculation based on PAR/SER hierarchy """
+    
+    mttf_network = []
+                
+    for group in failure_rate_network:
+                                        
+        if isinstance(group, tuple) and group[0] == "SER":
+            
+            frs = group[4]
+                                
+            if eleclayout in ['singlesidedstring',
+                              'doublesidedstring'] and isinstance(frs, list):
+                
+                frs = binomial(frs)
+            
+            new_tuple = (group[0],
+                         group[1],
+                         group[2],
+                         frs ** -1.0)
+            mttf_network.append(new_tuple)
+                
+        elif isinstance(group, tuple) and group[0] == "PAR":
+            
+            new_tuple = ("PAR", subsysmttf(group[1], eleclayout))
+            mttf_network.append(new_tuple)
+            
+        else:
+            
+            # Should be a list
+            new_list = subsysmttf(group, eleclayout)
+            mttf_network.append(new_list)
+        
+    return mttf_network
