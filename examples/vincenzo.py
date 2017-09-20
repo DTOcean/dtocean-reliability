@@ -18,9 +18,9 @@ data_dir = os.path.join(this_dir, "..", "sample_data")
 def main():    
     '''Test that main generates a non empty output'''
     input_variables = Variables(175200.0, # mission time in hours
-                                4380.0, # target mean time to failure in hours
                                 'tidefixed', # user-defined bill of materials
                                 eval(open(os.path.join(data_dir, 'dummydb2.txt')).read()), #Options: 'tidefloat', 'tidefixed', 'wavefloat', 'wavefixed'
+                                4380.0, # target mean time to failure in hours
                                 'radial', #Options: 'radial', 'singlesidedstring', 'doublesidedstring', 'multiplehubs' 
                                 None,#eval(open(os.path.join(data_dir, 'dummyelechiereg6.txt')).read()), # mooring system hierarchy
                                 None,#eval(open(os.path.join(data_dir, 'dummyelecbomeg6.txt')).read()),

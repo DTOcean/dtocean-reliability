@@ -18,9 +18,9 @@ def main():
     '''Test that main generates a non empty output'''
     
     input_variables = Variables(20.0 * 365.25 * 24.0, # mission time in hours
-                                0.4 * 20.0 * 365.25 * 24.0, # target mean time to failure in hours
                                 'wavefloat', #Options: 'tidefloat', 'tidefixed', 'wavefloat', 'wavefixed'
                                 eval(open(os.path.join(data_dir, 'dummydb1.txt')).read()), # database
+                                0.4 * 20.0 * 365.25 * 24.0, # target mean time to failure in hours
                                 'radial', #Options: 'radial', 'multiplehubs' 
                                 eval(open(os.path.join(data_dir, 'dummyelechiereg9.txt')).read()), # electrical system hierarchy
                                 eval(open(os.path.join(data_dir, 'dummyelecbomeg9.txt')).read())) # electrical bom
