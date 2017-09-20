@@ -1161,7 +1161,7 @@ class Syshier(object):
                                             ttfdev.append((subdev[0], subdev[1], frs ** -1.0)) 
                                     elif isinstance(dev[4], tuple):
                                         if (self._variables.eleclayout in ('singlesidedstring', 'doublesidedstring') and type(dev[4][4]) is list):
-                                            frs = self.binomial(dev[4][4])
+                                            frs = binomial(dev[4][4])
                                             ttfdev.append((dev[0], dev[1], dev[3] ** -1.0, (dev[4][0], dev[4][1], dev[4][2], frs ** -1.0))) 
                                         else:
                                             frs = dev[4][4]
