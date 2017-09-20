@@ -29,40 +29,6 @@ class Syshier(object):
     def __init__(self, variables):        
         self._variables = variables
         
-    def binomial(self, frpara):
-        """ Method from Elsayed, 2012 """
-        n = len(frpara)
-        frgroup = []
-        frterms = []
-        for frint in range(1, n + 1):
-
-            frcomb = []
-            frgroup = []
-            for comb in itertools.combinations(frpara, frint):
-                if frint == 1:
-                    frcomb.append(comb[0] ** -1.0)
-                elif frint > 1:
-                    frcomb.append(comb)
-            if frint == 1:
-                frsum = sum(frcomb) 
-            elif frint > 1:
-                frcombs = []
-                for combs in frcomb:
-                    frcombs.append(combs)
-                frsum = map(sum, frcombs)
-                for vals in frsum:
-                    frgroup.append(vals ** -1.0)
-            if frint == 1:
-                frgroupsum = frsum
-            elif frint > 1:
-                frgroupsum = sum(frgroup)
-            if (frint % 2 == 0):        
-                frgroupsum = -frgroupsum
-            frterms.append(frgroupsum)
-        frparacalc = sum(frterms) + ((-1.0) ** (n + 1)) * (frterms[0]) ** -1.0
-        frparacalc = np.reciprocal(frparacalc)
-        return frparacalc    
-        
     def arrayhiersub(self):        
         self.founddelflag = 'False'
         """ Read in sub-system hierarchies and consolidate into device- and array-level hierarchies """        
@@ -1422,3 +1388,39 @@ class Syshier(object):
                                                 'Risk Priority Number'])
         
         return
+
+
+def binomial(frpara):
+    """ Method from Elsayed, 2012 """
+    n = len(frpara)
+    frgroup = []
+    frterms = []
+    for frint in range(1, n + 1):
+
+        frcomb = []
+        frgroup = []
+        for comb in itertools.combinations(frpara, frint):
+            if frint == 1:
+                frcomb.append(comb[0] ** -1.0)
+            elif frint > 1:
+                frcomb.append(comb)
+        if frint == 1:
+            frsum = sum(frcomb) 
+        elif frint > 1:
+            frcombs = []
+            for combs in frcomb:
+                frcombs.append(combs)
+            frsum = map(sum, frcombs)
+            for vals in frsum:
+                frgroup.append(vals ** -1.0)
+        if frint == 1:
+            frgroupsum = frsum
+        elif frint > 1:
+            frgroupsum = sum(frgroup)
+        if (frint % 2 == 0):        
+            frgroupsum = -frgroupsum
+        frterms.append(frgroupsum)
+    frparacalc = sum(frterms) + ((-1.0) ** (n + 1)) * (frterms[0]) ** -1.0
+    frparacalc = np.reciprocal(frparacalc)
+    return frparacalc   
+
