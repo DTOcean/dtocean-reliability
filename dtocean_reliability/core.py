@@ -1349,13 +1349,20 @@ class Syshier(object):
         # logmsg = [""]
         # logmsg.append(' self.mttfarray {}'.format( self.mttfarray))
         # module_logger.info("\n".join(logmsg))
-        logmsg = [""]
-        logmsg.append('***************MTTF pass/fail******')
-        if self._variables.mttfreq > self.mttfarray[1]:
-            logmsg.append("Fail: calculated MTTF less than required value!")
-        else:
-            logmsg.append("Pass: calculated MTTF greater than required value")
-        module_logger.info("\n".join(logmsg))
+        if self._variables.mttfreq is not None:
+        
+            logmsg = [""]
+            logmsg.append('***************MTTF pass/fail******')
+            
+            failMsg = "Fail: calculated MTTF less than required value!"
+            passMsg = "Pass: calculated MTTF greater than required value"
+            
+            if self._variables.mttfreq > self.mttfarray[1]:
+                logmsg.append(failMsg)
+            else:
+                logmsg.append(passMsg)
+                
+            module_logger.info("\n".join(logmsg))
 
     def rpn(self):
         """ RPN calculation. Frequency definitions can be found in

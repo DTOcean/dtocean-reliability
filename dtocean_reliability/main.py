@@ -60,9 +60,9 @@ class Variables(object):
     """
        
     def __init__(self, mtime,
-                       mttfreq,
                        systype,
                        dbdict,
+                       mttfreq=None,
                        eleclayout=None,
                        elechierdict=None,
                        elecbomdict=None,
@@ -72,8 +72,9 @@ class Variables(object):
                        userbomdict=None):
                            
         self.mtime = mtime
-        self.mttfreq = mttfreq
         self.systype = systype
+        self.dbdict = dbdict
+        self.mttfreq = mttfreq
         self.eleclayout = eleclayout
         self.elechierdict = self.sanitise_dict(elechierdict)
         self.elecbomdict = deepcopy(elecbomdict)
@@ -81,7 +82,6 @@ class Variables(object):
         self.moorfoundbomdict = deepcopy(moorfoundbomdict)
         self.userhierdict = deepcopy(userhierdict)
         self.userbomdict = deepcopy(userbomdict)
-        self.dbdict = dbdict
         
         return
         
