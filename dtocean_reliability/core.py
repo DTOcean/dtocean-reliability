@@ -148,8 +148,7 @@ class Syshier(object):
                             self.complist.append(comps)                           
         self.complist = list(OrderedDict.fromkeys(self.complist))  
         
-        if self.fullset == 'False':
-            self.complist.append('dummy')
+        if not self.fullset: self.complist.append('dummy')
         
         # Will only remove one if this is desired
         if 'n/a' in self.complist: self.complist.remove('n/a')
