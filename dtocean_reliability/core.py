@@ -165,7 +165,14 @@ class Syshier(object):
             cs = 2
         for comps in self.complist:          
             self.arrayfrdict[str(comps)] = {}
-            if comps not in ["dummy", "n/a", "grout","ideal","shallowfoundation","gravityfoundation","gravity"]:
+            if comps not in ["dummy", 
+                             "n/a",
+                             "ideal",
+                             'gravity', 
+                             'shallowfoundation', 
+                             'suctioncaisson', 
+                             'directembedment',
+                             'grout']:
                 for dbitem in self._variables.dbdict: 
                     """ For components with an id number look up respective failure rates """
                     if dbitem == comps:
