@@ -181,7 +181,8 @@ class Main(Syshier):
                                                         
                 if not 'subhub001' in self._variables.userhierdict:
                     
-                    if 'subhub001' in self._variables.elechierdict:  
+                    if (self._variables.elechierdict is not None and
+                        'subhub001' in self._variables.elechierdict):  
                         
                         for devs in self._variables.elechierdict:
                             
@@ -192,7 +193,8 @@ class Main(Syshier):
                                 self._variables.userbomdict[devs] = \
                                                         deepcopy(dummy_bom)
                     
-                    elif 'subhub001' in self._variables.moorfoundhierdict:
+                    elif (self._variables.moorfoundhierdict is not None and
+                          'subhub001' in self._variables.moorfoundhierdict):
                         
                         for devs in self._variables.moorfoundhierdict:
                             
