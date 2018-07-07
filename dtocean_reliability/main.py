@@ -88,10 +88,13 @@ class Variables(object):
         """Remove any double nested lists where the outer list has length 1"""
         
         if raw_dict is None: return None
+        
+        # Copy the input properly
+        copy_dict = deepcopy(raw_dict)
 
         sane_dict = {}
         
-        for key, value in raw_dict.iteritems():
+        for key, value in copy_dict.iteritems():
             
             if key=='layout':
                 pass
