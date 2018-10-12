@@ -221,7 +221,7 @@ class Main(Syshier):
                                         
                     for devs in devlist:
                         
-                        if devs in ['array', 'subhub']:
+                        if 'subhub' in devs or devs == 'array':
                             
                             self._variables.moorfoundhierdict[devs] = \
                                     {'Substation foundation': ['dummy']}
