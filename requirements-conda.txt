@@ -4,6 +4,7 @@
 numpy
 pandas
 polite >=0.9
+setuptools
 
 # TEST DEPENDENCIES
 pytest-cov

@@ -78,7 +78,8 @@ setup(name='dtocean-reliability',
       packages=find_packages(),
       install_requires=['numpy',
                         'pandas',
-                        'polite>=0.9'
+                        'polite>=0.9',
+                        'setuptools'
                         ],
       package_data={'dtocean_reliability': ['config/*.yaml']
                     },
