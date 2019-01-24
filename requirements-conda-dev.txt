@@ -3,6 +3,7 @@
 # INSTALLATION REQUIRED DEPENDENCIES
 numpy
 pandas
+setuptools
 
 # TEST DEPENDENCIES
 pytest-cov
