@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## [2.0.0] - 2019-03-08
 
 ### Changed
 
@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed bug where direct-embedment anchors were not given a failure rate.
 - Fixed issue where inputs could be modified outside of the scope of the module.
 - Fixed bug when checking for subhubs in networks.
+- Fixed bug with float being passed to numpy.linspace for number of samples.
 
 ## [1.0.0] - 2017-01-05
 
