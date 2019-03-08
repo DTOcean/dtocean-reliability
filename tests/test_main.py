@@ -21,7 +21,7 @@ from collections import Counter # Required for eval of text files
 from dtocean_reliability.main import Variables, Main
 
 this_dir = os.path.dirname(os.path.realpath(__file__))
-data_dir = os.path.join(this_dir, "..", "sample_data")
+data_dir = os.path.join(this_dir, "..", "example_data")
 
 
 def test_main():    
