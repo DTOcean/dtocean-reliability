@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #    Copyright (C) 2016 Sam Weller, Jon Hardwick, Mathew Topper
-#    Copyright (C) 2017-2018 Mathew Topper
+#    Copyright (C) 2017-2019 Mathew Topper
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -22,6 +22,9 @@ from pkg_resources import get_distribution
 from polite.paths import ObjDirectory, UserDataDirectory, DirectoryMap
 from polite.configuration import Logger
 
+# Define build number for packaging test
+from ._build import BUILD
+
 # Set default logging handler to avoid "No handler found" warnings.
 try:  # Python 2.7+
     from logging import NullHandler
@@ -33,6 +36,7 @@ except ImportError:
 logging.getLogger(__name__).addHandler(NullHandler())
 
 # credentials
+__build__ = BUILD
 __version__ = get_distribution('dtocean-reliability').version
 
 
