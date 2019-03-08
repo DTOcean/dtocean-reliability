@@ -171,8 +171,8 @@ class Main(Syshier):
         self.dtime = 24
         self.time = np.linspace(0.0,
                                 2.0 * self._variables.mtime,
-                                ((2.0 * self._variables.mtime) /
-                                                        self.dtime) + 1.0)
+                                int(2 * self._variables.mtime /
+                                                        self.dtime) + 1)
         
         # """ Determine which hierarchies/boms are available and create dummy
         # versions for any which are missing       
