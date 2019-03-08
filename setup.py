@@ -66,14 +66,10 @@ class CleanPyc(Command):
 
 
 setup(name='dtocean-reliability',
-      version='1.1.dev0',
+      version='2.0.0',
       description='The reliability assessment module for the DTOcean tools',
-      author=('Sam Weller, '
-              'Jon Hardwick, '
-              'Mathew Topper'),
-      author_email=('s.weller@exeter.ac.uk, '
-                    'J.P.Hardwick@exeter.ac.uk, '
-                    'damm_horse@yahoo.co.uk'),
+      maintainer='Mathew Topper',
+      maintainer_email='mathew.topper@dataonlygreater.com',
       license="GPLv3",
       packages=find_packages(),
       install_requires=['numpy',
