@@ -1,6 +1,6 @@
 [![appveyor](https://ci.appveyor.com/api/projects/status/github/DTOcean/dtocean-reliability?branch=master&svg=true)](https://ci.appveyor.com/project/DTOcean/dtocean-reliability)
 [![codecov](https://codecov.io/gh/DTOcean/dtocean-reliability/branch/master/graph/badge.svg)](https://codecov.io/gh/DTOcean/dtocean-reliability)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/bb34506cc82f4df883178a6e64619eaf)](https://www.codacy.com/project/H0R5E/dtocean-reliability/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=DTOcean/dtocean-reliability&amp;utm_campaign=Badge_Grade_Dashboard&amp;branchId=8410911)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/3bc087b5705e45d1b17e86668f1a67ff)](https://www.codacy.com/project/H0R5E/dtocean-reliability/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=DTOcean/dtocean-reliability&amp;utm_campaign=Badge_Grade_Dashboard&amp;branchId=11738730)
 [![release](https://img.shields.io/github/release/DTOcean/dtocean-reliability.svg)](https://github.com/DTOcean/dtocean-reliability/releases/latest)
 
 # DTOcean Reliability Module
@@ -118,8 +118,8 @@ $ conda remove --name _dtocean_rely --all
 Example scripts are available in the "examples" folder of the source code.
 
 ```
-cd examples
-python example.py
+$ cd examples
+$ python example.py
 ```
 
 ## Contributing
