@@ -70,8 +70,6 @@ class Syshier(object):
                     elif self._variables.systype in ('tidefixed','wavefixed'):
                         # if 'Mooring system' in self._variables.moorfoundhierdict.keys():
                         del self._variables.moorfoundhierdict[deviceID]['Mooring system'] 
-                    
-#        self.arrayhierdict2 = copy.deepcopy( self.arrayhierdict)         
         
         for deviceID in self._variables.elechierdict:
             
@@ -80,8 +78,12 @@ class Syshier(object):
                 
                 # Break down parallel definitions into serial
                 check_dict = self._variables.elechierdict[deviceID]
-
-                self.arrayhierdict[deviceID] = check_dict 
+                
+                self.arrayhierdict[deviceID] = check_dict
+                
+                if ('Substation foundation' not in
+                    self._variables.moorfoundhierdict): continue
+                
 #                """ Append substation foundation """ 
                 substation_foundations = self._variables.moorfoundhierdict[
                                             deviceID]['Substation foundation']
@@ -91,13 +93,13 @@ class Syshier(object):
                                         
                 del self._variables.moorfoundhierdict[
                                             deviceID]['Substation foundation']
-                    
+            
             elif deviceID[0:6] == 'device':   
 #                """ Create device hierarchy dictionary """
                 self.devhierdict[deviceID] = {'M&F sub-system': self._variables.moorfoundhierdict[deviceID], 
                                               'Array elec sub-system': self._variables.elechierdict[deviceID], 
                                               'User sub-systems': self._variables.userhierdict[deviceID]}
-                       
+    
     def arrayfrdictasgn(self, severitylevel, calcscenario):                
         """ Read in relevant failure rate data from the mooring and electrical bill of materials """
         self.arrayfrdict = {}   
