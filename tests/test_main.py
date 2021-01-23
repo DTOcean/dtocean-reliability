@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#    Copyright (C) 2016-2018 Mathew Topper
+#    Copyright (C) 2016-2021 Mathew Topper
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,13 +18,13 @@
 import os
 from collections import Counter # Required for eval of text files
 
-from dtocean_reliability.main import Variables, Main
+from dtocean_reliability.main import Variables, main
 
 this_dir = os.path.dirname(os.path.realpath(__file__))
 data_dir = os.path.join(this_dir, "..", "example_data")
 
 
-def test_main():    
+def test_main():
     '''Test that main generates a non empty output'''
     
     dummydb = eval(open(os.path.join(data_dir, 'dummydb.txt')).read())
@@ -53,11 +53,11 @@ def test_main():
                                 dummyuserhier,
                                 dummyuserbom)
                                 
-    test = Main(input_variables)
-    mttf, rsystime = test()
+    mttf, rsystime, reliatab = main(input_variables)
     
     assert mttf
     assert rsystime is not None
+    assert not reliatab.empty
 
 
 def test_solo_electrical_radial():
@@ -79,11 +79,11 @@ def test_solo_electrical_radial():
                                 dummyelechier,
                                 dummyelecbom)
                                 
-    test = Main(input_variables)
-    mttf, rsystime = test()
+    mttf, rsystime, reliatab = main(input_variables)
     
     assert mttf
     assert rsystime is not None
+    assert not reliatab.empty
 
 
 def test_solo_moorings():
@@ -105,11 +105,11 @@ def test_solo_moorings():
                                 moorfoundhierdict=dummymoorhier,
                                 moorfoundbomdict=dummymoorbom)
                                 
-    test = Main(input_variables)
-    mttf, rsystime = test()
+    mttf, rsystime, reliatab = main(input_variables)
     
     assert mttf
     assert rsystime is not None
+    assert not reliatab.empty
 
 
 def test_solo_user():
@@ -131,11 +131,11 @@ def test_solo_user():
                                 userhierdict=dummyuserhier,
                                 userbomdict=dummyuserbom)
                                 
-    test = Main(input_variables)
-    mttf, rsystime = test()
+    mttf, rsystime, reliatab = main(input_variables)
     
     assert mttf
     assert rsystime is not None
+    assert not reliatab.empty
 
 
 def test_solo_user_no_array():
@@ -157,11 +157,11 @@ def test_solo_user_no_array():
                                 userhierdict=dummyuserhier,
                                 userbomdict=dummyuserbom)
                                 
-    test = Main(input_variables)
-    mttf, rsystime = test()
+    mttf, rsystime, reliatab = main(input_variables)
     
     assert mttf
     assert rsystime is not None
+    assert not reliatab.empty
 
 
 def test_electrical_user_no_array():
@@ -187,11 +187,11 @@ def test_electrical_user_no_array():
                                 userhierdict=dummyuserhier,
                                 userbomdict=dummyuserbom)
                                 
-    test = Main(input_variables)
-    mttf, rsystime = test()
+    mttf, rsystime, reliatab = main(input_variables)
     
     assert mttf
     assert rsystime is not None
+    assert not reliatab.empty
 
 
 def test_moorings_user_no_array():
@@ -217,8 +217,8 @@ def test_moorings_user_no_array():
                                 userhierdict=dummyuserhier,
                                 userbomdict=dummyuserbom)
                                 
-    test = Main(input_variables)
-    mttf, rsystime = test()
+    mttf, rsystime, reliatab = main(input_variables)
     
     assert mttf
     assert rsystime is not None
+    assert not reliatab.empty

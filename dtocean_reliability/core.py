@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #    Copyright (C) 2016 Sam Weller, Jon Hardwick
-#    Copyright (C) 2017-2018 Mathew Topper
+#    Copyright (C) 2017-2021 Mathew Topper
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -100,7 +100,7 @@ class Syshier(object):
                                               'Array elec sub-system': self._variables.elechierdict[deviceID], 
                                               'User sub-systems': self._variables.userhierdict[deviceID]}
     
-    def arrayfrdictasgn(self, severitylevel, calcscenario):                
+    def arrayfrdictasgn(self, severitylevel, calcscenario, fullset):                
         """ Read in relevant failure rate data from the mooring and electrical bill of materials """
         self.arrayfrdict = {}   
         self.devicecompscandict = {}
@@ -167,7 +167,7 @@ class Syshier(object):
                             self.complist.append(comps)                           
         self.complist = list(OrderedDict.fromkeys(self.complist))  
         
-        if not self.fullset: self.complist.append('dummy')
+        if not fullset: self.complist.append('dummy')
         
         # Will only remove one if this is desired
         if 'n/a' in self.complist: self.complist.remove('n/a')
@@ -1329,7 +1329,7 @@ class Syshier(object):
                 
             module_logger.info("\n".join(logmsg))
 
-    def rpn(self):
+    def rpn(self, severitylevel):
         """ RPN calculation. Frequency definitions can be found in
         Deliverable 7.2
         """
@@ -1361,9 +1361,9 @@ class Syshier(object):
             elif probf[compind] >= 50.0:
                 freq[compind] = 5.0
             
-            if self.severitylevel == 'critical':
+            if severitylevel == 'critical':
                 rpn[compind] = 2.0 * freq[compind]
-            elif self.severitylevel == 'non-critical':
+            elif severitylevel == 'non-critical':
                 rpn[compind] = 1.0 * freq[compind]
             if rpn[compind] <= 2.0:
                 mc[compind] = 'green'

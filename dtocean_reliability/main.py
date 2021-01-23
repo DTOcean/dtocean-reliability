@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #    Copyright (C) 2016 Sam Weller, Jon Hardwick
-#    Copyright (C) 2017-2018 Mathew Topper
+#    Copyright (C) 2017-2021 Mathew Topper
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -131,298 +131,280 @@ class Variables(object):
      
         return sane_dict
 
-        
-                
-class Main(Syshier):
-    """
-    #-------------------------------------------------------------------------- 
-    #--------------------------------------------------------------------------
-    #------------------ WP4 Main class
-    #--------------------------------------------------------------------------
-    #-------------------------------------------------------------------------- 
-    This is the main class of the WP4 module which inherits from the 
-    Foundation, Mooring and Substation Foundation sub-modules 
 
-    Functions:
-        moorsub: top level mooring module
+def main(variables):
+    """
+    Reliability module main function
         
     Args:
         variables: input variables
     
-    Attributes:
-        deviceid (str) [-]: device identification number
-        
     Returns:
-        sysmoorinsttab(pandas)       
+    (tuple): tuple containing:
         
+        mttf
+        rsystime
+        reliatab
+    
     """
     
-    def __init__(self, variables): 
-        super(Main, self).__init__(variables)
-        
-    def __call__(self):
+    module_logger.info("Start reliability calculation")
     
-        module_logger.info("Start reliability calculation")
-        
-        self.mttfarrayruns = []
-        self.rarrayruns = []
-        
-        # """ Time step """        
-        self.dtime = 24
-        self.time = np.linspace(0.0,
-                                2.0 * self._variables.mtime,
-                                int(2 * self._variables.mtime /
-                                                        self.dtime) + 1)
-        
-        # """ Determine which hierarchies/boms are available and create dummy
-        # versions for any which are missing       
-        if (self._variables.moorfoundhierdict and
-            self._variables.userhierdict and
-            self._variables.elechierdict):
-                
-            self.fullset = True
+    mttfarrayruns = []
+    rarrayruns = []
+    
+    # Time step
+    dtime = 24
+    time = np.linspace(0.0,
+                       2.0 * variables.mtime,
+                       int(2 * variables.mtime / dtime) + 1)
+    
+    # Determine which hierarchies/boms are available and create dummy
+    # versions for any which are missing
+    if (variables.moorfoundhierdict and
+        variables.userhierdict and
+        variables.elechierdict):
             
-        else:
+        fullset = True
+        
+    else:
 
-            self.fullset = False
+        fullset = False
+    
+        devlist = []
+        dummy_hier = {'Dummy sub-system': ['dummy']}
+        dummy_bom =  {'Dummy sub-system':
+                                {'quantity': Counter({'dummy': 1})}}
         
-            devlist = []
-            dummy_hier = {'Dummy sub-system': ['dummy']}
-            dummy_bom =  {'Dummy sub-system':
-                                    {'quantity': Counter({'dummy': 1})}}
+        if variables.userhierdict is not None:
             
-            if self._variables.userhierdict is not None:
-                
-                # """ If the User has specifed device subsystems but no
-                # array-level subsystems generate dummy entries """
-                
-                if not 'array' in self._variables.userhierdict:
-                    self._variables.userhierdict['array'] = \
-                                                        deepcopy(dummy_hier)
-                    self._variables.userbomdict['array'] = \
-                                                        deepcopy(dummy_bom)
-                                                        
-                if not 'subhub001' in self._variables.userhierdict:
-                    
-                    if (self._variables.elechierdict is not None and
-                        'subhub001' in self._variables.elechierdict):  
-                        
-                        for devs in self._variables.elechierdict:
-                            
-                            if devs[:6] == 'subhub':
-                                
-                                self._variables.userhierdict[devs] = \
-                                                        deepcopy(dummy_hier)
-                                self._variables.userbomdict[devs] = \
-                                                        deepcopy(dummy_bom)
-                    
-                    elif (self._variables.moorfoundhierdict is not None and
-                          'subhub001' in self._variables.moorfoundhierdict):
-                        
-                        for devs in self._variables.moorfoundhierdict:
-                            
-                            if devs[:6] == 'subhub':
-                                self._variables.userhierdict[devs] = \
-                                                        deepcopy(dummy_hier)
-                                self._variables.userbomdict[devs] = \
-                                                        deepcopy(dummy_bom)
+            # If the User has specifed device subsystems but no
+            # array-level subsystems generate dummy entries
             
-            # Scan available hierarchies for device numbers
-            if self._variables.elechierdict is not None:
+            if not 'array' in variables.userhierdict:
+                variables.userhierdict['array'] = deepcopy(dummy_hier)
+                variables.userbomdict['array'] = deepcopy(dummy_bom)
+                                                    
+            if not 'subhub001' in variables.userhierdict:
                 
-                for devs in self._variables.elechierdict:
+                if (variables.elechierdict is not None and
+                    'subhub001' in variables.elechierdict):  
                     
-                    if devs not in devlist: devlist.append(devs)
+                    for devs in variables.elechierdict:
                         
-                if self._variables.moorfoundhierdict is None:
+                        if devs[:6] == 'subhub':
+                            
+                            variables.userhierdict[devs] = \
+                                                    deepcopy(dummy_hier)
+                            variables.userbomdict[devs] = \
+                                                    deepcopy(dummy_bom)
+                
+                elif (variables.moorfoundhierdict is not None and
+                      'subhub001' in variables.moorfoundhierdict):
                     
-                    self._variables.moorfoundhierdict = {}
-                    self._variables.moorfoundbomdict = {}
-                                        
-                    for devs in devlist:
+                    for devs in variables.moorfoundhierdict:
                         
-                        if 'subhub' in devs or devs == 'array':
-                            
-                            self._variables.moorfoundhierdict[devs] = \
-                                    {'Substation foundation': ['dummy']}
-                            self._variables.moorfoundbomdict[devs] = \
-                                    {'Substation foundation': \
-                                        {'substation foundation type': 'dummy',
-                                         'grout type': 'dummy'}}
-                                         
-                        elif devs[:6] == 'device':
-                            
-                            self._variables.moorfoundhierdict[devs] = \
-                                                {'Umbilical': ['dummy'],
-                                                 'Mooring system': ['dummy'],
-                                                 'Foundation': ['dummy']}
-                            self._variables.moorfoundbomdict[devs] = \
-                                {'Umbilical': {'quantity':
-                                                        Counter({'dummy': 1})},
-                                 'Foundation': {'quantity':
-                                                        Counter({'dummy': 1})},
-                                 'Mooring system': {'quantity':
-                                                        Counter({'dummy': 1})}}
+                        if devs[:6] == 'subhub':
+                            variables.userhierdict[devs] = \
+                                                    deepcopy(dummy_hier)
+                            variables.userbomdict[devs] = \
+                                                    deepcopy(dummy_bom)
+        
+        # Scan available hierarchies for device numbers
+        if variables.elechierdict is not None:
+            
+            for devs in variables.elechierdict:
                 
-            else:
+                if devs not in devlist: devlist.append(devs)
+                    
+            if variables.moorfoundhierdict is None:
                 
-                # For when the electrical network hierarchy doesn't exist
-                self._variables.eleclayout = 'radial'
-                self._variables.elechierdict = {}
-                self._variables.elecbomdict = {}
-                
-                if self._variables.moorfoundhierdict is not None:
-                    
-                    for devs in self._variables.moorfoundhierdict:
-                        if devs not in devlist:
-                            devlist.append(devs)
-                            
-                    devsonlylist = [x for x in devlist if x[:6] == 'device']  
-                    
-                if self._variables.userhierdict is not None:
-                    
-                    for devs in self._variables.userhierdict:
-                        if devs not in devlist:
-                            devlist.append(devs)
-                    
-                    devsonlylist = [x for x in devlist if x[:6] == 'device']
-                
-                if 'array' not in devlist:
-                    
-                    self._variables.moorfoundhierdict['array'] = \
-                                    {'Substation foundation': ['dummy']}
-                    self._variables.moorfoundbomdict['array'] = \
-                                    {'Substation foundation':
-                                        {'quantity': Counter({'dummy': 1})}}
-                    
-                    devlist.append('array')
-                
+                variables.moorfoundhierdict = {}
+                variables.moorfoundbomdict = {}
+                                    
                 for devs in devlist:
                     
-                    if devs == 'array': 
+                    if 'subhub' in devs or devs == 'array':
                         
-                        self._variables.elechierdict[devs] = \
+                        variables.moorfoundhierdict[devs] = \
+                                {'Substation foundation': ['dummy']}
+                        variables.moorfoundbomdict[devs] = \
+                                {'Substation foundation': \
+                                    {'substation foundation type': 'dummy',
+                                     'grout type': 'dummy'}}
+                                     
+                    elif devs[:6] == 'device':
+                        
+                        variables.moorfoundhierdict[devs] = \
+                                            {'Umbilical': ['dummy'],
+                                             'Mooring system': ['dummy'],
+                                             'Foundation': ['dummy']}
+                        variables.moorfoundbomdict[devs] = \
+                            {'Umbilical': {'quantity':
+                                                    Counter({'dummy': 1})},
+                             'Foundation': {'quantity':
+                                                    Counter({'dummy': 1})},
+                             'Mooring system': {'quantity':
+                                                    Counter({'dummy': 1})}}
+            
+        else:
+            
+            # For when the electrical network hierarchy doesn't exist
+            variables.eleclayout = 'radial'
+            variables.elechierdict = {}
+            variables.elecbomdict = {}
+            
+            if variables.moorfoundhierdict is not None:
+                
+                for devs in variables.moorfoundhierdict:
+                    if devs not in devlist:
+                        devlist.append(devs)
+                        
+                devsonlylist = [x for x in devlist if x[:6] == 'device']  
+            
+            if variables.userhierdict is not None:
+                
+                for devs in variables.userhierdict:
+                    if devs not in devlist:
+                        devlist.append(devs)
+                
+                devsonlylist = [x for x in devlist if x[:6] == 'device']
+            
+            if 'array' not in devlist:
+                
+                variables.moorfoundhierdict['array'] = \
+                                {'Substation foundation': ['dummy']}
+                variables.moorfoundbomdict['array'] = \
+                                {'Substation foundation':
+                                    {'quantity': Counter({'dummy': 1})}}
+                
+                devlist.append('array')
+            
+            for devs in devlist:
+                
+                if devs == 'array': 
+                    
+                    variables.elechierdict[devs] = \
+                                            {'Export cable': ['dummy'],
+                                             'Substation': ['dummy'],
+                                             'layout': [devsonlylist]}
+                    variables.elecbomdict[devs] = \
+                        {'Substation': {'quantity': Counter({'dummy': 1})},
+                         'Export cable':
+                                     {'quantity': Counter({'dummy': 1})}}
+                                     
+                elif devs[:6] == 'subhub':
+                    
+                    variables.elechierdict[devs] = \
                                                 {'Export cable': ['dummy'],
                                                  'Substation': ['dummy'],
                                                  'layout': [devsonlylist]}
-                        self._variables.elecbomdict[devs] = \
-                            {'Substation': {'quantity': Counter({'dummy': 1})},
-                             'Export cable':
-                                         {'quantity': Counter({'dummy': 1})}}
-                                         
-                    elif devs[:6] == 'subhub':
-                        
-                        self._variables.elechierdict[devs] = \
-                                                    {'Export cable': ['dummy'],
-                                                     'Substation': ['dummy'],
-                                                     'layout': [devsonlylist]}
-                                                     
-                        self._variables.elecbomdict[devs] = \
-                            {'Substation': {'quantity': Counter({'dummy': 1})}}
-                            
-                    elif devs[:6] == 'device':
-                        
-                        self._variables.elechierdict[devs] = \
-                                                {'Elec sub-system': ['dummy']}
-                        self._variables.elecbomdict[devs] = \
-                                            {'quantity': Counter({'dummy': 1})} 
-            
-                if not self._variables.moorfoundhierdict:
-                    
-                    self._variables.moorfoundhierdict = {}
-                    self._variables.moorfoundbomdict = {}
-                    
-                    for devs in devlist:
-                        
-                        if devs == 'array':
-                            
-                            self._variables.moorfoundhierdict[devs] = \
-                                    {'Substation foundation': ['dummy']}
-                            self._variables.moorfoundbomdict[devs] = \
-                                    {'Substation foundation':
-                                        {'quantity': Counter({'dummy': 1})}}
-                                        
-                        elif devs[:6] == 'device':
-                            
-                            self._variables.moorfoundhierdict[devs] = \
-                                                {'Umbilical': ['dummy'],
-                                                 'Mooring system': ['dummy'],
-                                                 'Foundation': ['dummy']}
                                                  
-                            self._variables.moorfoundbomdict[devs] = \
-                                    {'Umbilical':
-                                        {'quantity': Counter({'dummy': 1})},
-                                     'Foundation':
-                                         {'quantity': Counter({'dummy': 1})},
-                                     'Mooring system':
-                                         {'quantity': Counter({'dummy': 1})}}
-                                         
-            if self._variables.userhierdict is None:
+                    variables.elecbomdict[devs] = \
+                        {'Substation': {'quantity': Counter({'dummy': 1})}}
+                        
+                elif devs[:6] == 'device':
+                    
+                    variables.elechierdict[devs] = \
+                                            {'Elec sub-system': ['dummy']}
+                    variables.elecbomdict[devs] = \
+                                        {'quantity': Counter({'dummy': 1})} 
+            
+            if not variables.moorfoundhierdict:
                 
-                self._variables.userhierdict = {}
-                self._variables.userbomdict = {}
+                variables.moorfoundhierdict = {}
+                variables.moorfoundbomdict = {}
                 
                 for devs in devlist:
                     
-                    self._variables.userhierdict[devs] = deepcopy(dummy_hier)
-                    self._variables.userbomdict[devs] = deepcopy(dummy_bom)
-                    
+                    if devs == 'array':
                         
-        self.arrayhiersub()
+                        variables.moorfoundhierdict[devs] = \
+                                {'Substation foundation': ['dummy']}
+                        variables.moorfoundbomdict[devs] = \
+                                {'Substation foundation':
+                                    {'quantity': Counter({'dummy': 1})}}
+                                    
+                    elif devs[:6] == 'device':
+                        
+                        variables.moorfoundhierdict[devs] = \
+                                            {'Umbilical': ['dummy'],
+                                             'Mooring system': ['dummy'],
+                                             'Foundation': ['dummy']}
+                                             
+                        variables.moorfoundbomdict[devs] = \
+                                {'Umbilical':
+                                    {'quantity': Counter({'dummy': 1})},
+                                 'Foundation':
+                                     {'quantity': Counter({'dummy': 1})},
+                                 'Mooring system':
+                                     {'quantity': Counter({'dummy': 1})}}
         
-        for scen in range(0, 2):
+        if variables.userhierdict is None:
             
-            if scen == 0:
-                self.severitylevel = 'critical'
-            elif scen == 1:
-                self.severitylevel = 'non-critical'
+            variables.userhierdict = {}
+            variables.userbomdict = {}
+            
+            for devs in devlist:
                 
-            for confid in range(0, 3): 
+                variables.userhierdict[devs] = deepcopy(dummy_hier)
+                variables.userbomdict[devs] = deepcopy(dummy_bom)
+    
+    hierarchy = Syshier(variables)
+    hierarchy.arrayhiersub()
+    
+    for scen in range(0, 2):
+        
+        if scen == 0:
+            severitylevel = 'critical'
+        elif scen == 1:
+            severitylevel = 'non-critical'
+            
+        for confid in range(0, 3): 
+            
+            if confid == 0:
+                calcscenario = 'lower'
+            elif confid == 1:
+                calcscenario = 'mean'
+            elif confid == 2:
+                calcscenario = 'upper'
+            
+            hierarchy.arrayfrdictasgn(severitylevel, calcscenario, fullset)
+            hierarchy.arrayfrvalues()
+            hierarchy.ttf()
+            hierarchy.rpn(severitylevel)
+            
+            if variables.eleclayout:
                 
-                if confid == 0:
-                    self.calcscenario = 'lower'
-                elif confid == 1:
-                    self.calcscenario = 'mean'
-                elif confid == 2:
-                    self.calcscenario = 'upper'
-                    
-                self.arrayfrdictasgn(self.severitylevel, self.calcscenario)
-                self.arrayfrvalues()
-                self.ttf()
-                self.rpn()
+                mttfarrayruns.append(hierarchy.mttfarray[1] / 1e6)
+                rarrayruns.append(hierarchy.rarrayvalue[1])
+                reliavals = [mttfarrayruns, rarrayruns]
                 
-                if self._variables.eleclayout:
-                    
-                    self.mttfarrayruns.append(self.mttfarray[1] / 1e6)
-                    self.rarrayruns.append(self.rarrayvalue[1])
-                    self.reliavals = [self.mttfarrayruns, self.rarrayruns]
-                    
-                else:
-                    
-                    self.reliavals = [['n/a' for col in range(6)]
-                                                        for row in range(2)]
-        
-        index = ['System MTTF (x10^6 hours)',
-                 'Rarray at ' + str(self._variables.mtime) + ' hours']
-        columns = ['critical, lower',
-                   'critical, mean',
-                   'critical, upper',
-                   'non-critical, lower',
-                   'non-critical, mean',
-                   'non-critical, upper']        
-        
-        self.reliatab = pd.DataFrame(self.reliavals,
-                                     index=index,
-                                     columns=columns)
-                                     
-        rsystime = []
-        
-        for ts in self.time:
-            # """ Assumes exponential distribution for complete system
-            # reliability """
-            rsystime.append([ts, math.exp(-(self.mttfarray[1]**-1)  * ts)])
-        
-        mttf = self.mttfarray[1]
-        
-        return mttf, rsystime
+            else:
+                
+                reliavals = [['n/a' for col in range(6)]
+                                                    for row in range(2)]
+    
+    index = ['System MTTF (x10^6 hours)',
+             'Rarray at ' + str(variables.mtime) + ' hours']
+    columns = ['critical, lower',
+               'critical, mean',
+               'critical, upper',
+               'non-critical, lower',
+               'non-critical, mean',
+               'non-critical, upper']
+    
+    reliatab = pd.DataFrame(reliavals,
+                            index=index,
+                            columns=columns)
+    
+    rsystime = []
+    
+    for ts in time:
+        # Assumes exponential distribution for complete system reliability
+        rsystime.append([ts, math.exp(-(hierarchy.mttfarray[1]**-1)  * ts)])
+    
+    mttf = hierarchy.mttfarray[1]
+    
+    return mttf, rsystime, reliatab
  
