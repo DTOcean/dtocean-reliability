@@ -105,8 +105,7 @@ class Syshier(object):
         self.arrayfrdict = {}   
         self.devicecompscandict = {}
         self.complist = []
-        self.compfrvalueslist = [] 
-
+        
         for deviceID in self._variables.moorfoundhierdict:                
             for subsys in self._variables.moorfoundhierdict[deviceID]:       
                 """ Compile list of components """                 
@@ -140,21 +139,23 @@ class Syshier(object):
                                           'shallowfoundation', 
                                           'suctioncaisson', 
                                           'directembedment',
-                                          'grout')):                            
+                                          'grout')):
                                 self.complist.append(comps)
-        for deviceID in self._variables.elecbomdict:
-            if (deviceID == 'array' or deviceID[0:6] == 'subhub'):            
-                for subsys in self._variables.elecbomdict[deviceID]:
-                    """ Compile list of components """
-                    if subsys == 'Substation':
-                        for comps in self._variables.elecbomdict[deviceID][subsys]['quantity']:
-                            self.complist.append(comps)
-                    elif subsys == 'Export cable':
-                        for comps in self._variables.elecbomdict[deviceID][subsys]['quantity']:
-                            self.complist.append(comps)                
+                                
+        for deviceID, deveelecbom in self._variables.elecbomdict.iteritems():
+            
+            if (deviceID == 'array' or deviceID[0:6] == 'subhub'):
+                
+                for subsys, subelecbom in deveelecbom.iteritems():
+                    
+                    for comps in subelecbom['quantity']:
+                        self.complist.append(comps)
+                
             else:
-                for comps in self._variables.elecbomdict[deviceID]['quantity']:                       
-                    self.complist.append(comps)           
+                
+                for comps in deveelecbom['quantity']:
+                    self.complist.append(comps)
+        
         for deviceID in self._variables.userbomdict:
             for subsys in self._variables.userbomdict[deviceID]:
                 for comps in self._variables.userbomdict[deviceID][subsys]['quantity']:                       
@@ -176,50 +177,11 @@ class Syshier(object):
         self.complist = [comp for comp in self.complist
                                          if "not required" not in str(comp)]
         
-        if calcscenario == 'lower':
-            cs = 0
-        elif calcscenario == 'mean':
-            cs = 1
-        elif calcscenario == 'upper':
-            cs = 2
-        for comps in self.complist:          
-            self.arrayfrdict[str(comps)] = {}
-            if comps not in ["dummy", 
-                             "n/a",
-                             "ideal",
-                             'gravity', 
-                             'shallowfoundation', 
-                             'suctioncaisson', 
-                             'directembedment',
-                             'grout']:
-                for dbitem in self._variables.dbdict: 
-                    """ For components with an id number look up respective failure rates """
-                    if dbitem == comps:
-                        if severitylevel == 'critical':                           
-                            if self._variables.dbdict[dbitem]['item10']['failratecrit'][cs] == 0.0:
-                                """ If no data for a particular calculation scenario, failure rate defaults to mean value """                             
-                                self.arrayfrdict[comps] = self._variables.dbdict[dbitem]['item10']['failratecrit'][1]
-                                self.compfrvalueslist.append((comps, self._variables.dbdict[dbitem]['item10']['failratecrit'][1]))
-                            else:
-                                self.arrayfrdict[comps] = self._variables.dbdict[dbitem]['item10']['failratecrit'][cs]
-                                self.compfrvalueslist.append((comps, self._variables.dbdict[dbitem]['item10']['failratecrit'][cs]))
-                        else:
-                            if self._variables.dbdict[dbitem]['item10']['failratenoncrit'][1] == 0.0:
-                                """ If no non-critical failure rate data is available use critical values """
-                                self._variables.dbdict[dbitem]['item10']['failratenoncrit'] = self._variables.dbdict[dbitem]['item10']['failratecrit']
-                            if self._variables.dbdict[dbitem]['item10']['failratenoncrit'][cs] == 0.0:
-                                 """ If no data for a particular calculation scenario, failure rate defaults to mean value """                             
-                                 self.arrayfrdict[comps] = self._variables.dbdict[dbitem]['item10']['failratenoncrit'][1]
-                                 self.compfrvalueslist.append((comps, self._variables.dbdict[dbitem]['item10']['failratenoncrit'][1]))
-                            else:
-                                 self.arrayfrdict[comps] = self._variables.dbdict[dbitem]['item10']['failratenoncrit'][cs]
-                                 self.compfrvalueslist.append((comps, self._variables.dbdict[dbitem]['item10']['failratenoncrit'][cs]))
-            else:
-                """ For designed components (i.e. shallow/gravity foundations, direct embedment anchors and 
-                    suction caissons) in addition to grouted jointed use generic failure rate of 1.0x10^-4 
-                    failures per annum (1.141x10^-14 failures per 10^6 hours) """
-                self.arrayfrdict[comps] = 1.141 * 10.0 ** -14.0
-                self.compfrvalueslist.append((comps, 1.141 * 10.0 ** -14.0))     
+        self.arrayfrdict = get_arrayfrdict (self._variables.dbdict,
+                                            self.complist,
+                                            severitylevel,
+                                            calcscenario)
+        
         # logmsg = [""]
         # logmsg.append('self.arrayfrdict {}'.format(self.arrayfrdict))
         # module_logger.info("\n".join(logmsg)) 
@@ -411,7 +373,12 @@ class Syshier(object):
         if self._variables.eleclayout == 'multiplehubs':
             self.frvalues2 = self.arraylevelvalues + self.frvalues
         else:
-            self.frvalues2 = self.arraylevelvalues + self.devfrvalues[0] 
+            self.frvalues2 = self.arraylevelvalues + self.devfrvalues[0]
+        
+        print self.frvalues2
+        import sys
+        sys.exit()
+        
         # logmsg = [""]
         # logmsg.append('self.arrayfrdict  {}'.format(self.arrayfrdict))
         # module_logger.info("\n".join(logmsg))   
@@ -461,50 +428,11 @@ class Syshier(object):
         """ Access individual lists to determine reliability at mission time  """ 
         # logmsg.append('self.devfrvalues {}'.format(self.devfrvalues))
         # module_logger.info("\n".join(logmsg)) 
-        def rcompmt(lst3):
-            """ Individual component reliabilities calculated """
-            newlst3 = lst3[:]
-            self.int = []  
-            for index3, item3 in enumerate(lst3): 
-                # logmsg = [""]
-                # logmsg.append('item3 {}'.format(item3))
-                # module_logger.info("\n".join(logmsg)) 
-                rpara = []                
-                if type(item3) is list:                                        
-                    if any(isinstance(self.int, list) for self.int in item3): 
-                        if (self._variables.eleclayout == 'multiplehubs' and type(item3[0]) is tuple):
-                            if item3[0][2][0:6] == 'subhub':      
-                                lst3[index3] = ('PAR', rcompmt(lst3[index3]) )
-                            else:                                 
-                                lst3[index3] = rcompmt(lst3[index3])
-                        else:
-                            lst3[index3] = rcompmt(lst3[index3]) 
-                    else:                        
-                        for comps in item3:     
-                            comp = comps[0]
-                            subsys = comps[1]
-                            devs = comps[2]                            
-                            frs = comps[3]                     
-                            rpara.append(('SER', comp, subsys, devs, math.exp(-frs * self._variables.mtime), frs))                        
-                        """ 'PAR' used to define parallel relationship. Top level is always treated as series (main hub and export cable) """
-                        if item3[0][2] == 'array':
-                            lst3[index3] = ('SER', rpara)  
-                        else:                            
-                            samesubsys = [i for i, v in enumerate(rpara) if v[2] == rpara[0][2]]
-                            if len(rpara) == len(samesubsys):
-                                if len(rpara) == 1:
-                                    lst3[index3] = ('PAR', rpara)  
-                                else:
-                                    lst3[index3] = ('PAR', rpara)  
-                            else:
-                                lst3[index3] = rpara
-                else:
-                    """ 'SER' used to define series relationship """
-                    lst3[index3] = ('SER', item3[0], item3[1], item3[2], math.exp(-item3[3] * self._variables.mtime), item3[3])          
-                newlst3[index3] = lst3[index3]            
-            return newlst3        
-        self.rcompvalues = rcompmt(self.frvalues2)     
-        self.rcompvalues2 = copy.deepcopy(self.rcompvalues)        
+        
+        self.rcompvalues = rcompmt(self.frvalues2,
+                                   self._variables.eleclayout,
+                                   self._variables.mtime)
+        self.rcompvalues2 = copy.deepcopy(self.rcompvalues)
         self.rcompvalues3 = copy.deepcopy(self.rcompvalues)
         # fil = open('RAM_outputs.txt','w');
         # fil.write('%%%%%%%%%%%%%%%%%%Reliability Values%%%%%%%%%%%%%%%%%%\r\n\r\nself.rcompvalues2\r\n')
@@ -514,200 +442,6 @@ class Syshier(object):
         # logmsg.append('self.rcompvalues2 {}'.format(self.rcompvalues2))
         # module_logger.info("\n".join(logmsg))   
 
-        def rsubsysmt(lst3):
-            """ Sub-system level grouping """
-            newlst3 = lst3[:]
-            newlst4 = []
-            self.int = [] 
-            self.indlst = []
-            sersubass = []
-            sersubass2 = [] 
-            for index3, item3 in enumerate(lst3):
-                if type(item3) is list:                         
-                    if any(isinstance(self.int, list) for self.int in item3): 
-                        lst3[index3] = rsubsysmt(lst3[index3])
-                    elif (self._variables.eleclayout == 'multiplehubs' and item3[0][0] == 'PAR' and item3[0][1][0][3][0:6] == 'subhub'):
-                        lst3[index3] = ('PAR', rsubsysmt(item3[0][1]))                   
-                    else:                        
-                        rgroup = []
-                        rgroupser = defaultdict(list)
-                        rgrouppara = defaultdict(list)                        
-                        rgroupsing = defaultdict(list)    
-                        frgroupser = defaultdict(list)
-                        frgrouppara = defaultdict(list)                        
-                        frgroupsing = defaultdict(list)
-                        sersubass = []                
-                        rsingdict = defaultdict(list)
-
-                        """ Find parallel assemblies first """  
-                        paraind = [i for i, z in enumerate(item3[0:len(item3)]) if z[0] == 'PAR']
-                        for subass in paraind:                            
-                            rserdict = defaultdict(list)
-                            rparadict = defaultdict(list)
-                            rsingdict = defaultdict(list)
-                            frserdict = defaultdict(list)
-                            frparadict = defaultdict(list)
-                            frsingdict = defaultdict(list)
-                            
-                            """ Find components within the same subsystem """ 
-                            if [x for x, y in Counter([x[2] for x in item3[subass][1]]).items()]:
-                                for comps in item3[subass][1]: 
-                                    if comps[0] == 'SER' and comps[2] == x:                                        
-                                        rserdict[x].append(comps[4])  
-                                        frserdict[x].append(comps[5])                                          
-                                    elif comps[0] == 'PAR' and comps[2] == x:
-                                        rparadict[x].append(1 - comps[4]) 
-                                        frparadict[x].append(comps[5])                                         
-                                    elif comps[2] == x and y == 1: 
-                                        rsingdict[x] = comps[4]
-                                        frsingdict[x] = comps[5]                   
-                                if (x == 'M&F sub-system' and self._variables.systype in ('wavefloat', 'tidefloat')):
-                                    """ k of n system """
-                                    if rserdict[x]: rgroupser[x].append(np.prod(rserdict[x]))
-                                    if rparadict[x]: rgrouppara[x].append(np.prod(rparadict[x])) 
-                                elif (x == 'M&F sub-system' and self._variables.systype in ('wavefixed', 'tidefixed')):                                    
-                                    if rserdict[x]: rgroupser[x].append(np.prod(rserdict[x]))                                        
-                                    if rparadict[x]: rgrouppara[x].append(1 - np.prod(rparadict[x]))
-                                elif x != 'M&F sub-system':
-                                    if rserdict[x]: rgroupser[x].append(np.prod(rserdict[x]))                                        
-                                    if rparadict[x]: rgrouppara[x].append(1 - np.prod(rparadict[x]))                                
-                                if rsingdict[x]: rgroupsing[x].append(rsingdict[x]) 
-                                if frserdict[x]: frgroupser[x].append(sum(frserdict[x]))
-                                if frparadict[x]: frgrouppara[x].append(binomial(frparadict[x].values())) 
-                                if frsingdict[x]: frgroupsing[x].append(frsingdict[x])
-                        if any(rgrouppara): 
-                            for subsys in rgrouppara:
-                                rgroup.append(('SER', subsys, comps[3], 1 - np.prod(rgrouppara[subsys]), binomial(frgrouppara[subsys])))                        
-                        if any(rgroupser): 
-                            for subsys in rgroupser:
-                                if (self._variables.eleclayout in ('singlesidedstring', 'doublesidedstring') and subsys == 'Array elec sub-system'):
-                                    """ Prevent grouping of parallel link """
-                                    rgroup.append(('SER', subsys, comps[3], rgroupser[subsys], frgroupser[subsys]))                                    
-                                if (subsys == 'M&F sub-system' and self._variables.systype in ('wavefloat', 'tidefloat')):
-                                    """ Treat mooring systems as k of n system, i.e. one line failure is permitted for Accident Limit State. All lines treated as having reliability equal to the line with the lowest reliability value"""
-                                    rmngroup = [] 
-                                    frmngroup = [] 
-                                    n = len(rgroupser[subsys])
-                                    rgroupsort = np.sort(rgroupser[subsys])
-                                    frgroupsort = np.sort(frgroupser[subsys])
-                                    rgroupsort = np.fliplr([rgroupsort])[0]
-                                    # logmsg = [""]
-                                    # logmsg.append('rgroupsersort {}'.format(rgroupsort))
-                                    # logmsg.append('frgroupsort {}'.format(frgroupsort))                                    
-                                    # module_logger.info("\n".join(logmsg))
-                                    k = n - 1
-                                    for i in range(k,n+1):                                   
-                                        rmngroup.append((math.factorial(n) / (math.factorial(n-i) * math.factorial(i))) * rgroupsort[i-1] ** i * (1 - rgroupsort[i-1]) ** (n - i))
-                                        frmngroup.append((i * frgroupsort[i-1]) ** -1.0)
-                                    rgroup.append(('SER', subsys, comps[3], sum(rmngroup), sum(frmngroup) ** -1.0))   
-                                elif (subsys == 'M&F sub-system' and self._variables.systype in ('wavefixed', 'tidefixed')):
-                                    """ Foundation is k of n system where functionality of all foundations is required """
-                                    rmngroup = [] 
-                                    frmngroup = [] 
-                                    n = len(rgroupser[subsys])
-                                    k = n
-                                    frmngroup = sum(frgroupser[subsys])
-                                    rmngroup = np.prod(rgroupser[subsys])
-                                    rgroup.append(('SER', subsys, comps[3], rmngroup,frmngroup))   
-                                elif subsys in ('Pto', 'Hydrodynamic', 'Control', 'Support structure'):
-                                    rgroupserpara = []
-                                    """ Parallel components within user-defined sub-systems """
-                                    for rparavals in rgroupser[subsys]:                                        
-                                        rgroupserpara.append(1 - rparavals)
-                                    rgroup.append(('SER', subsys, comps[3], 1.0 - np.prod(rgroupserpara), binomial(frgroupser[subsys])))  
-                        """ Single subsystem in parallel configuration """                                                
-                        if any(rsingdict): 
-                            for subsys in rgroupsing:
-                                rgroup.append((comps[0], subsys, comps[3], rsingdict[subsys], frsingdict[subsys]))                        
-                        lst3[index3]  = rgroup 
-                        
-                        """ Find series assemblies """  
-                        serind = [i for i, z in enumerate(item3[0:len(item3)]) if z[0] == 'SER']  
-                        
-                        for subass in serind: 
-                            sersubass.append(item3[subass]) 
-                        """ Find components within the same subsystem """ 
-                        rserdict = defaultdict(list)
-                        rparadict = defaultdict(list)
-                        rsingdict = defaultdict(list)
-                        frserdict = defaultdict(list)
-                        frparadict = defaultdict(list)
-                        frsingdict = defaultdict(list)
-                        rgroupser = defaultdict(list)
-                        rgrouppara = defaultdict(list)                        
-                        rgroupsing = defaultdict(list) 
-                        frgroupser = defaultdict(list)
-                        frgrouppara = defaultdict(list)                        
-                        frgroupsing = defaultdict(list)
-                        
-                        for x, y in Counter([x[2] for x in sersubass]).items():                        
-                            for comps in sersubass: 
-                                if comps[0] == 'SER' and comps[2] == x and y > 1: 
-                                    rserdict[x].append(comps[4])     
-                                    frserdict[x].append(comps[5])    
-                                elif comps[0] == 'PAR' and comps[2] == x and y > 1:
-                                    rparadict[x].append(1 - comps[4])
-                                    frparadict[x].append(comps[5]) 
-                                elif comps[2] == x and y == 1: 
-                                    rsingdict[x] = comps[4]        
-                                    frsingdict[x] = comps[5]                                 
-                            if rserdict[x]: rgroupser[x] = np.prod(rserdict[x])
-                            if rparadict[x]: rgrouppara[x]  = 1 - np.prod(rparadict[x]) 
-                            if frserdict[x]: frgroupser[x] = sum(frserdict[x])
-                            if frparadict[x]: frgrouppara[x].append(binomial(frparadict[x].values()))
-                            if rgroupser[x]: rgroup.append(('SER', x, comps[3], rgroupser[x], frgroupser[x])) 
-                            if rgrouppara[x]: rgroup.append(('SER', x, comps[3], rgrouppara[x], frgrouppara[x]))                        
-                            if rsingdict[x]: rgroup.append((comps[0], x, comps[3], rsingdict[x], frsingdict[x]))
-
-                        lst3[index3]  = rgroup  
-                else:                
-                    rgroup = []
-                    rserdict = defaultdict(list)
-                    rparadict = defaultdict(list)
-                    rsingdict = defaultdict(list)
-                    frserdict = defaultdict(list)
-                    frparadict = defaultdict(list)
-                    frsingdict = defaultdict(list)
-                    rgroupser = defaultdict(list)
-                    rgrouppara = defaultdict(list)                        
-                    rgroupsing = defaultdict(list) 
-                    frgroupser = defaultdict(list)
-                    frgrouppara = defaultdict(list)                        
-                    frgroupsing = defaultdict(list)
-                    
-                    sersubass2.append(item3) 
-                    """ Find components within the same subsystem """                
-                    for comps in sersubass2: 
-                        for x, y in Counter([x[2] for x in sersubass2]).items():                          
-                            if comps[0] == 'SER' and comps[2] == x and y > 1: 
-                                rserdict[x].append(comps[4])
-                                frserdict[x].append(comps[5]) 
-                            elif comps[0] == 'PAR' and comps[2] == x and y > 1:
-                                rparadict[x].append(1 - comps[4])
-                                frparadict[x].append(comps[5])
-                            elif comps[2] == x and y == 1: 
-                                rsingdict[x] = comps[4] 
-                                frsingdict[x] = comps[5]
-                        if rserdict[x]: rgroupser[x] = np.prod(rserdict[x])
-                        if rparadict[x]: rgrouppara[x]  = 1 - np.prod(rparadict[x]) 
-                        if frserdict[x]: frgroupser[x] = sum(frserdict[x])
-                        if frparadict[x]: frgrouppara[x].append(binomial(frparadict[x].values()))
-                    if any(rserdict):
-                        for subsys in rserdict:
-                            if rgroupser[subsys] and len(rserdict[subsys]) == self.subsyslendict[subsys]: 
-                                rgroup.append(('SER', subsys, comps[3], rgroupser[subsys], frgroupser[subsys]))   
-                    if any(rparadict):
-                        for subsys in rparadict:
-                            if rgrouppara[subsys] and len(rparadict[subsys]) == self.subsyslendict[subsys]: 
-                                rgroup.append(('SER', subsys, comps[3], rgrouppara[subsys], binomial(frgrouppara[subsys])))                            
-                    if any(rsingdict):                 
-                        for subsys in rsingdict: 
-                            if (subsys == lst3[index3][2] and self.subsyslendict[subsys] == 1): 
-                                rgroup.append((comps[0], subsys, comps[3], rsingdict[subsys], frsingdict[subsys]))
-                    lst3[index3]  = rgroup 
-                newlst3[index3] = lst3[index3]
-            newlst4 = filter(None, newlst3)
-            return newlst4    
         self.rsubsysvalues = rsubsysmt(self.rcompvalues)
         self.rsubsysvalues2 = copy.deepcopy(self.rsubsysvalues)
         self.rsubsysvalues3 = copy.deepcopy(self.rsubsysvalues)
@@ -762,8 +496,9 @@ class Syshier(object):
                 elif (self._variables.eleclayout == 'multiplehubs' and item3[0] == 'PAR'):
                     lst3[index3] = ('PAR', rdevmt(item3[1]))
                 newlst3[index3] = lst3[index3]
-
+            
             return newlst3
+        
         self.rdevvalues = rdevmt(self.rsubsysvalues)
         self.rdevvalues2 = copy.deepcopy(self.rdevvalues)
         # fil.write('\r\n\r\nself.rdevvalues2\r\n')
@@ -1294,8 +1029,9 @@ class Syshier(object):
             
             # logmsg = [""]
             # logmsg.append(' self.mttfsubhub {}'.format( self.mttfsubhub))
-            # module_logger.info("\n".join(logmsg))       
-        def arraymttf(lst3):            
+            # module_logger.info("\n".join(logmsg))
+        
+        def arraymttf():
             """ Top level MTTF calculation """
             mttfarray = []
             if self._variables.eleclayout:
@@ -1305,7 +1041,8 @@ class Syshier(object):
             return mttfarray
         
         """ System MTTF in hours """
-        self.mttfarray = arraymttf(self.rarrayvalue2)
+        print self.rarrayvalue2
+        self.mttfarray = arraymttf()
         # fil.write('\r\n\r\nself.mttfarray\r\n')
         # np.savetxt(fil,self.mttfarray,fmt='%s',delimiter='\t')
         # fil.close()        
@@ -1319,6 +1056,10 @@ class Syshier(object):
             
             failMsg = "Fail: calculated MTTF less than required value!"
             passMsg = "Pass: calculated MTTF greater than required value"
+            
+            print "**"
+            print self._variables.mttfreq
+            print self.mttfarray[1]
             
             self.mttfpass = self._variables.mttfreq < self.mttfarray[1]
             
@@ -1334,7 +1075,7 @@ class Syshier(object):
         Deliverable 7.2
         """
         
-        complist = self.compfrvalueslist[:]
+        complist = [(comp, fr) for comp, fr in self.arrayfrdict.items()]
         
         probf = [0 for rows in range(0, len(complist))]
         freq = [0 for rows in range(0, len(complist))]
@@ -1377,16 +1118,78 @@ class Syshier(object):
         rpnvalues = zip(*[probf, rpn])
         
         # Filter out dummy values
-        self.complist = [x for x in self.complist if x != 'dummy']
-        rpnvalues = [x for x, y in zip(rpnvalues, self.complist)
-                                                        if y != 'dummy']
+        complist = [x for x in complist if x != 'dummy']
+        rpnvalues = [x for x, y in zip(rpnvalues, complist) if y != 'dummy']
         
         self.rpncomptab = pd.DataFrame(rpnvalues,
-                                       index=self.complist,
+                                       index=complist,
                                        columns=['Probability of failure %',
                                                 'Risk Priority Number'])
         
         return
+
+def get_arrayfrdict (dbdict,
+                     complist,
+                     severitylevel,
+                     calcscenario):
+    
+    # For components with an id number look up respective failure rates 
+    # otherwise for designed components (i.e. shallow/gravity foundations, 
+    # direct embedment anchors and suction caissons) in addition to 
+    # grouted jointed use generic failure rate of 1.0x10^-4 failures 
+    # per annum (1.141x10^-14 failures per 10^6 hours)
+    
+    # Note:
+    #  * If no data for a particular calculation scenario, failure rate 
+    #    defaults to mean value
+    #  * If no non-critical failure rate data is available use critical values
+    
+    arrayfrdict = {}
+    designed_comps = ["dummy",
+                      "n/a",
+                      "ideal",
+                      "gravity",
+                      "shallowfoundation",
+                      "suctioncaisson",
+                      "directembedment",
+                      "grout"]
+    
+    if calcscenario == 'lower':
+        cs = 0
+    elif calcscenario == 'mean':
+        cs = 1
+    elif calcscenario == 'upper':
+        cs = 2
+    else:
+        err_str = "Argument 'calcscenario' may only take values 0, 1, or 2"
+        raise ValueError(err_str)
+    
+    for comp in complist:
+        
+        if comp in designed_comps:
+            arrayfrdict[comp] = 1.141 * 10.0 ** -14.0
+            continue
+        
+        dbitem = dbdict[comp]['item10']
+        
+        if severitylevel == 'critical':
+            
+            if dbitem['failratecrit'][cs] == 0.0:
+                arrayfrdict[comp] = dbitem['failratecrit'][1]
+            else:
+                arrayfrdict[comp] = dbitem['failratecrit'][cs]
+        
+        else:
+            
+            if dbitem['failratenoncrit'][1] == 0.0:
+               dbitem['failratenoncrit'] = dbitem['failratecrit']
+            
+            if dbitem['failratenoncrit'][cs] == 0.0:
+                 arrayfrdict[comp] = dbitem['failratenoncrit'][1]
+            else:
+                 arrayfrdict[comp] = dbitem['failratenoncrit'][cs]
+    
+    return arrayfrdict
 
 
 def binomial(frpara):
@@ -1458,3 +1261,278 @@ def subsysmttf(failure_rate_network, eleclayout):
             mttf_network.append(new_list)
         
     return mttf_network
+
+def rcompmt(lst3, eleclayout, mtime):
+    # Individual component reliabilities calculated """
+    
+    newlst3 = lst3[:]
+    
+    for index3, item3 in enumerate(lst3):
+        
+        rpara = []
+        
+        if type(item3) is list:
+            
+            if any(isinstance(x, list) for x in item3): 
+                
+                if (eleclayout == 'multiplehubs' and type(item3[0]) is tuple):
+                    if item3[0][2][0:6] == 'subhub':      
+                        lst3[index3] = ('PAR', rcompmt(lst3[index3]) )
+                    else:                                 
+                        lst3[index3] = rcompmt(lst3[index3])
+                else:
+                    lst3[index3] = rcompmt(lst3[index3])
+            
+            else:
+                
+                for comps in item3:
+                    comp = comps[0]
+                    subsys = comps[1]
+                    devs = comps[2]
+                    frs = comps[3]
+                    rpara.append(('SER',
+                                  comp,
+                                  subsys,
+                                  devs,
+                                  math.exp(-frs * mtime),
+                                  frs))
+                    
+                # 'PAR' used to define parallel relationship. Top level is
+                # always treated as series (main hub and export cable)
+                if item3[0][2] == 'array':
+                    
+                    lst3[index3] = ('SER', rpara)
+                    
+                else:
+                    
+                    samesubsys = [i for i, v in enumerate(rpara)
+                                                    if v[2] == rpara[0][2]]
+                    
+                    if len(rpara) == len(samesubsys):
+                        if len(rpara) == 1:
+                            lst3[index3] = ('PAR', rpara)
+                        else:
+                            lst3[index3] = ('PAR', rpara)
+                    else:
+                        lst3[index3] = rpara
+        else:
+            
+            # 'SER' used to define series relationship
+            lst3[index3] = ('SER',
+                            item3[0],
+                            item3[1],
+                            item3[2],
+                            math.exp(-item3[3] * mtime),
+                            item3[3])
+        newlst3[index3] = lst3[index3]
+    
+    return newlst3
+
+def rsubsysmt(lst3, eleclayout):
+    # Sub-system level grouping """
+    
+    newlst3 = lst3[:]
+    newlst4 = []
+    sersubass = []
+    sersubass2 = [] 
+    
+    for index3, item3 in enumerate(lst3):
+        
+        if type(item3) is list:
+            
+            if any(isinstance(x, list) for x in item3):
+                
+                newlst3[index3] = rsubsysmt(lst3[index3])
+                continue
+            
+            elif (eleclayout == 'multiplehubs' and
+                  item3[0][0] == 'PAR' and
+                  item3[0][1][0][3][0:6] == 'subhub'):
+                
+                newlst3[index3] = ('PAR', rsubsysmt(item3[0][1]))
+                continue
+            
+            rgroup = []
+            rgroupser = defaultdict(list)
+            rgrouppara = defaultdict(list)
+            rgroupsing = defaultdict(list)
+            frgroupser = defaultdict(list)
+            frgrouppara = defaultdict(list)
+            frgroupsing = defaultdict(list)
+            sersubass = []
+            rsingdict = defaultdict(list)
+
+            # Find parallel assemblies first
+            paraind = [i for i, z in enumerate(item3[0:len(item3)])
+                                                            if z[0] == 'PAR']
+            
+            for subass in paraind:
+                
+                rserdict = defaultdict(list)
+                rparadict = defaultdict(list)
+                rsingdict = defaultdict(list)
+                frserdict = defaultdict(list)
+                frparadict = defaultdict(list)
+                frsingdict = defaultdict(list)
+                
+                # Find components within the same subsystem 
+                if [x for x, y in Counter([x[2] for x in
+                                           item3[subass][1]]).items()]:
+                    for comps in item3[subass][1]: 
+                        if comps[0] == 'SER' and comps[2] == x:                                        
+                            rserdict[x].append(comps[4])  
+                            frserdict[x].append(comps[5])                                          
+                        elif comps[0] == 'PAR' and comps[2] == x:
+                            rparadict[x].append(1 - comps[4]) 
+                            frparadict[x].append(comps[5])                                         
+                        elif comps[2] == x and y == 1: 
+                            rsingdict[x] = comps[4]
+                            frsingdict[x] = comps[5]                   
+                    if (x == 'M&F sub-system' and self._variables.systype in ('wavefloat', 'tidefloat')):
+                        """ k of n system """
+                        if rserdict[x]: rgroupser[x].append(np.prod(rserdict[x]))
+                        if rparadict[x]: rgrouppara[x].append(np.prod(rparadict[x])) 
+                    elif (x == 'M&F sub-system' and self._variables.systype in ('wavefixed', 'tidefixed')):                                    
+                        if rserdict[x]: rgroupser[x].append(np.prod(rserdict[x]))                                        
+                        if rparadict[x]: rgrouppara[x].append(1 - np.prod(rparadict[x]))
+                    elif x != 'M&F sub-system':
+                        if rserdict[x]: rgroupser[x].append(np.prod(rserdict[x]))                                        
+                        if rparadict[x]: rgrouppara[x].append(1 - np.prod(rparadict[x]))                                
+                    if rsingdict[x]: rgroupsing[x].append(rsingdict[x]) 
+                    if frserdict[x]: frgroupser[x].append(sum(frserdict[x]))
+                    if frparadict[x]: frgrouppara[x].append(binomial(frparadict[x].values())) 
+                    if frsingdict[x]: frgroupsing[x].append(frsingdict[x])
+            if any(rgrouppara): 
+                for subsys in rgrouppara:
+                    rgroup.append(('SER', subsys, comps[3], 1 - np.prod(rgrouppara[subsys]), binomial(frgrouppara[subsys])))                        
+            if any(rgroupser): 
+                for subsys in rgroupser:
+                    if (self._variables.eleclayout in ('singlesidedstring', 'doublesidedstring') and subsys == 'Array elec sub-system'):
+                        """ Prevent grouping of parallel link """
+                        rgroup.append(('SER', subsys, comps[3], rgroupser[subsys], frgroupser[subsys]))                                    
+                    if (subsys == 'M&F sub-system' and self._variables.systype in ('wavefloat', 'tidefloat')):
+                        """ Treat mooring systems as k of n system, i.e. one line failure is permitted for Accident Limit State. All lines treated as having reliability equal to the line with the lowest reliability value"""
+                        rmngroup = [] 
+                        frmngroup = [] 
+                        n = len(rgroupser[subsys])
+                        rgroupsort = np.sort(rgroupser[subsys])
+                        frgroupsort = np.sort(frgroupser[subsys])
+                        rgroupsort = np.fliplr([rgroupsort])[0]
+                        # logmsg = [""]
+                        # logmsg.append('rgroupsersort {}'.format(rgroupsort))
+                        # logmsg.append('frgroupsort {}'.format(frgroupsort))                                    
+                        # module_logger.info("\n".join(logmsg))
+                        k = n - 1
+                        for i in range(k,n+1):                                   
+                            rmngroup.append((math.factorial(n) / (math.factorial(n-i) * math.factorial(i))) * rgroupsort[i-1] ** i * (1 - rgroupsort[i-1]) ** (n - i))
+                            frmngroup.append((i * frgroupsort[i-1]) ** -1.0)
+                        rgroup.append(('SER', subsys, comps[3], sum(rmngroup), sum(frmngroup) ** -1.0))   
+                    elif (subsys == 'M&F sub-system' and self._variables.systype in ('wavefixed', 'tidefixed')):
+                        """ Foundation is k of n system where functionality of all foundations is required """
+                        rmngroup = [] 
+                        frmngroup = [] 
+                        n = len(rgroupser[subsys])
+                        k = n
+                        frmngroup = sum(frgroupser[subsys])
+                        rmngroup = np.prod(rgroupser[subsys])
+                        rgroup.append(('SER', subsys, comps[3], rmngroup,frmngroup))   
+                    elif subsys in ('Pto', 'Hydrodynamic', 'Control', 'Support structure'):
+                        rgroupserpara = []
+                        """ Parallel components within user-defined sub-systems """
+                        for rparavals in rgroupser[subsys]:                                        
+                            rgroupserpara.append(1 - rparavals)
+                        rgroup.append(('SER', subsys, comps[3], 1.0 - np.prod(rgroupserpara), binomial(frgroupser[subsys])))  
+            """ Single subsystem in parallel configuration """                                                
+            if any(rsingdict): 
+                for subsys in rgroupsing:
+                    rgroup.append((comps[0], subsys, comps[3], rsingdict[subsys], frsingdict[subsys]))                        
+            lst3[index3]  = rgroup 
+            
+            """ Find series assemblies """  
+            serind = [i for i, z in enumerate(item3[0:len(item3)]) if z[0] == 'SER']  
+            
+            for subass in serind: 
+                sersubass.append(item3[subass]) 
+            """ Find components within the same subsystem """ 
+            rserdict = defaultdict(list)
+            rparadict = defaultdict(list)
+            rsingdict = defaultdict(list)
+            frserdict = defaultdict(list)
+            frparadict = defaultdict(list)
+            frsingdict = defaultdict(list)
+            rgroupser = defaultdict(list)
+            rgrouppara = defaultdict(list)                        
+            rgroupsing = defaultdict(list) 
+            frgroupser = defaultdict(list)
+            frgrouppara = defaultdict(list)                        
+            frgroupsing = defaultdict(list)
+            
+            for x, y in Counter([x[2] for x in sersubass]).items():                        
+                for comps in sersubass: 
+                    if comps[0] == 'SER' and comps[2] == x and y > 1: 
+                        rserdict[x].append(comps[4])     
+                        frserdict[x].append(comps[5])    
+                    elif comps[0] == 'PAR' and comps[2] == x and y > 1:
+                        rparadict[x].append(1 - comps[4])
+                        frparadict[x].append(comps[5]) 
+                    elif comps[2] == x and y == 1: 
+                        rsingdict[x] = comps[4]        
+                        frsingdict[x] = comps[5]                                 
+                if rserdict[x]: rgroupser[x] = np.prod(rserdict[x])
+                if rparadict[x]: rgrouppara[x]  = 1 - np.prod(rparadict[x]) 
+                if frserdict[x]: frgroupser[x] = sum(frserdict[x])
+                if frparadict[x]: frgrouppara[x].append(binomial(frparadict[x].values()))
+                if rgroupser[x]: rgroup.append(('SER', x, comps[3], rgroupser[x], frgroupser[x])) 
+                if rgrouppara[x]: rgroup.append(('SER', x, comps[3], rgrouppara[x], frgrouppara[x]))                        
+                if rsingdict[x]: rgroup.append((comps[0], x, comps[3], rsingdict[x], frsingdict[x]))
+
+            lst3[index3]  = rgroup  
+        else:                
+            rgroup = []
+            rserdict = defaultdict(list)
+            rparadict = defaultdict(list)
+            rsingdict = defaultdict(list)
+            frserdict = defaultdict(list)
+            frparadict = defaultdict(list)
+            frsingdict = defaultdict(list)
+            rgroupser = defaultdict(list)
+            rgrouppara = defaultdict(list)                        
+            rgroupsing = defaultdict(list) 
+            frgroupser = defaultdict(list)
+            frgrouppara = defaultdict(list)                        
+            frgroupsing = defaultdict(list)
+            
+            sersubass2.append(item3) 
+            """ Find components within the same subsystem """                
+            for comps in sersubass2: 
+                for x, y in Counter([x[2] for x in sersubass2]).items():                          
+                    if comps[0] == 'SER' and comps[2] == x and y > 1: 
+                        rserdict[x].append(comps[4])
+                        frserdict[x].append(comps[5]) 
+                    elif comps[0] == 'PAR' and comps[2] == x and y > 1:
+                        rparadict[x].append(1 - comps[4])
+                        frparadict[x].append(comps[5])
+                    elif comps[2] == x and y == 1: 
+                        rsingdict[x] = comps[4] 
+                        frsingdict[x] = comps[5]
+                if rserdict[x]: rgroupser[x] = np.prod(rserdict[x])
+                if rparadict[x]: rgrouppara[x]  = 1 - np.prod(rparadict[x]) 
+                if frserdict[x]: frgroupser[x] = sum(frserdict[x])
+                if frparadict[x]: frgrouppara[x].append(binomial(frparadict[x].values()))
+            if any(rserdict):
+                for subsys in rserdict:
+                    if rgroupser[subsys] and len(rserdict[subsys]) == self.subsyslendict[subsys]: 
+                        rgroup.append(('SER', subsys, comps[3], rgroupser[subsys], frgroupser[subsys]))   
+            if any(rparadict):
+                for subsys in rparadict:
+                    if rgrouppara[subsys] and len(rparadict[subsys]) == self.subsyslendict[subsys]: 
+                        rgroup.append(('SER', subsys, comps[3], rgrouppara[subsys], binomial(frgrouppara[subsys])))                            
+            if any(rsingdict):                 
+                for subsys in rsingdict: 
+                    if (subsys == lst3[index3][2] and self.subsyslendict[subsys] == 1): 
+                        rgroup.append((comps[0], subsys, comps[3], rsingdict[subsys], frsingdict[subsys]))
+            lst3[index3]  = rgroup 
+        newlst3[index3] = lst3[index3]
+    newlst4 = filter(None, newlst3)
+    return newlst4
+        

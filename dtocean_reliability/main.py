@@ -86,7 +86,8 @@ class Variables(object):
                        moorfoundhierdict=None,
                        moorfoundbomdict=None,
                        userhierdict=None,
-                       userbomdict=None):
+                       userbomdict=None,
+                       elecsupplementary=None):
                            
         self.mtime = mtime
         self.systype = systype
@@ -99,6 +100,7 @@ class Variables(object):
         self.moorfoundbomdict = deepcopy(moorfoundbomdict)
         self.userhierdict = deepcopy(userhierdict)
         self.userbomdict = deepcopy(userbomdict)
+        self.elecsupplementary = deepcopy(elecsupplementary)
         
         return
         
@@ -289,9 +291,11 @@ def main(variables):
                                              'Substation': ['dummy'],
                                              'layout': [devsonlylist]}
                     variables.elecbomdict[devs] = \
-                        {'Substation': {'quantity': Counter({'dummy': 1})},
+                        {'Substation': {'marker': [-1], 
+                                        'quantity': Counter({'dummy': 1})},
                          'Export cable':
-                                     {'quantity': Counter({'dummy': 1})}}
+                                     {'marker': [-1], 
+                                      'quantity': Counter({'dummy': 1})}}
                                      
                 elif devs[:6] == 'subhub':
                     
@@ -301,14 +305,16 @@ def main(variables):
                                                  'layout': [devsonlylist]}
                                                  
                     variables.elecbomdict[devs] = \
-                        {'Substation': {'quantity': Counter({'dummy': 1})}}
+                        {'Substation': {'marker': [-1], 
+                                        'quantity': Counter({'dummy': 1})}}
                         
                 elif devs[:6] == 'device':
                     
                     variables.elechierdict[devs] = \
                                             {'Elec sub-system': ['dummy']}
                     variables.elecbomdict[devs] = \
-                                        {'quantity': Counter({'dummy': 1})} 
+                                        {'marker': [-1], 
+                                         'quantity': Counter({'dummy': 1})} 
             
             if not variables.moorfoundhierdict:
                 

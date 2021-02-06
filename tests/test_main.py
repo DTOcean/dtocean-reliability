@@ -18,6 +18,8 @@
 import os
 from collections import Counter # Required for eval of text files
 
+import pandas as pd
+
 from dtocean_reliability.main import Variables, main
 
 this_dir = os.path.dirname(os.path.realpath(__file__))
@@ -216,6 +218,37 @@ def test_moorings_user_no_array():
                                 moorfoundbomdict=dummymoorbom,
                                 userhierdict=dummyuserhier,
                                 userbomdict=dummyuserbom)
+                                
+    mttf, rsystime, reliatab = main(input_variables)
+    
+    assert mttf
+    assert rsystime is not None
+    assert not reliatab.empty
+
+
+def test_solo_electrical_distance():
+    '''Test that main generates a non empty output for just the electrical
+    network, with a radial layout.
+    '''
+
+    dummydb = eval(open(os.path.join(data_dir, 'dummydb1.txt')).read())
+    dummyelechier = eval(open(os.path.join(data_dir,
+                                           'dummyelechiereg9.txt')).read())
+    dummyelecbom = eval(open(os.path.join(data_dir,
+                                          'dummyelecbomeg9.txt')).read())
+    
+    elecsuppath = os.path.join(data_dir,
+                               'dummyelecsupplementary9.csv')
+    dummyelecsup = pd.read_csv(elecsuppath).to_dict()
+    
+    input_variables = Variables(20.0 * 365.25 * 24.0, 
+                                'tidefloat',
+                                dummydb,
+                                0.4 * 20.0 * 365.25 * 24.0,
+                                'radial',
+                                dummyelechier,
+                                dummyelecbom,
+                                elecsupplementary=dummyelecsup)
                                 
     mttf, rsystime, reliatab = main(input_variables)
     
