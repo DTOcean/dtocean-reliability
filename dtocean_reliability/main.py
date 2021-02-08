@@ -262,7 +262,8 @@ def main(variables):
                     if devs not in devlist:
                         devlist.append(devs)
                         
-                devsonlylist = [x for x in devlist if x[:6] == 'device']  
+                devsonlylist = [x for x in devlist if x[:6] == 'device']
+                subsonlylist = [[x] for x in devlist if x[:6] == 'subhub']
             
             if variables.userhierdict is not None:
                 
@@ -286,10 +287,15 @@ def main(variables):
                 
                 if devs == 'array': 
                     
+                    if subsonlylist:
+                        layout = subsonlylist
+                    else:
+                        layout = [devsonlylist]
+                    
                     variables.elechierdict[devs] = \
                                             {'Export cable': ['dummy'],
                                              'Substation': ['dummy'],
-                                             'layout': [devsonlylist]}
+                                             'layout': layout}
                     variables.elecbomdict[devs] = \
                         {'Substation': {'marker': [-1], 
                                         'quantity': Counter({'dummy': 1})},
@@ -299,15 +305,21 @@ def main(variables):
                                      
                 elif devs[:6] == 'subhub':
                     
+                    variables.eleclayout = 'multiplehubs'
                     variables.elechierdict[devs] = \
-                                                {'Export cable': ['dummy'],
+                                                {'Elec sub-system': ['dummy'],
                                                  'Substation': ['dummy'],
                                                  'layout': [devsonlylist]}
-                                                 
+                    
                     variables.elecbomdict[devs] = \
-                        {'Substation': {'marker': [-1], 
+                         {'Elec sub-system': {
+                                        'marker': [-1], 
+                                        'quantity': Counter({'dummy': 1})},
+                         'Substation': {'marker': [-1], 
                                         'quantity': Counter({'dummy': 1})}}
-                        
+                    
+                    devsonlylist = []
+                
                 elif devs[:6] == 'device':
                     
                     variables.elechierdict[devs] = \
@@ -355,6 +367,7 @@ def main(variables):
                 
                 variables.userhierdict[devs] = deepcopy(dummy_hier)
                 variables.userbomdict[devs] = deepcopy(dummy_bom)
+
     
     hierarchy = Syshier(variables)
     hierarchy.arrayhiersub()
@@ -383,7 +396,7 @@ def main(variables):
             if variables.eleclayout:
                 
                 mttfarrayruns.append(hierarchy.mttfarray[1] / 1e6)
-                rarrayruns.append(hierarchy.rarrayvalue[1])
+                rarrayruns.append(hierarchy.rarrayvalue2[1])
                 reliavals = [mttfarrayruns, rarrayruns]
                 
             else:
