@@ -1007,15 +1007,43 @@ def getfrvalues(arrayhierdict, devhierdict):
             # Assuming a single subhub per group
             owner = subhubgroup[0]
             subhub_dict = arrayhierdict[owner]
+            subhub_comps = get_subhub_frvalues(subhub_dict, owner)
+            
+            if subhub_dict["layout"]:
+                subhub_comps.append(get_dev_frvalues(subhub_dict["layout"][0],
+                                                     devhierdict))
     
-            subhubvalues.extend(get_array_frvalues(subhub_dict, owner))
+            subhubvalues.append(subhub_comps)
+            
+        frvalues.append(subhubvalues)
         
-    
+    elif array_dict["layout"]:
+        
+        frvalues.append(get_dev_frvalues(subhub_dict["layout"][0],
+                                         devhierdict))
+        
+    return frvalues
+        
     
 def get_array_frvalues(arraydict, owner):
     
     array_list = []
     system_types = ["Export cable", "Substation"]
+    
+    for system in system_types:
+        
+        comps = strip_dummy(arraydict[system])
+        if comps is None: continue
+        complist = make_component_lists(comps, system, owner)
+        array_list.extend(complist)
+    
+    return array_list
+
+
+def get_subhub_frvalues(arraydict, owner):
+    
+    array_list = []
+    system_types = ["Elec sub-system", "Substation"]
     
     for system in system_types:
         
@@ -1044,11 +1072,29 @@ def get_dev_frvalues(dev_list, devhierdict):
             
             if system not in devdict: continue
             
-            for subsystem in devdict[system].values():
-                comps = strip_dummy(subsystem)
-                if comps is None: continue
-                complist = make_component_lists(comps, system, dev)
-                devcomps.extend(complist)
+            for subsystem, checkcomps in devdict[system].items():
+                
+                if system == 'User sub-systems':
+                    owner = subsystem
+                else:
+                    owner = system
+                
+                checkcomps = strip_dummy(checkcomps)
+                if checkcomps is None: continue
+            
+                syscomps = []
+            
+                for comps in checkcomps:
+                
+                    complist = make_component_lists(comps, owner, dev)
+                    
+                    if len(checkcomps) == 1:
+                        devcomps.append(complist)
+                    else:
+                        syscomps.append(complist)
+                    
+                if syscomps:
+                    devcomps.append(syscomps)
         
         if devcomps:
             all_devices.append(devcomps)
