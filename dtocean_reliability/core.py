@@ -988,6 +988,113 @@ def subsysmttf(failure_rate_network, eleclayout):
         
     return mttf_network
 
+
+def getfrvalues(arrayhierdict, devhierdict):
+    
+    frvalues = []
+    
+    owner = "array"
+    array_dict = arrayhierdict[owner]
+    
+    frvalues.extend(get_array_frvalues(array_dict, owner))
+    
+    if "subhub" in array_dict["layout"][0][0]:
+        
+        subhubvalues = []
+        
+        for subhubgroup in array_dict["layout"]:
+            
+            # Assuming a single subhub per group
+            owner = subhubgroup[0]
+            subhub_dict = arrayhierdict[owner]
+    
+            subhubvalues.extend(get_array_frvalues(subhub_dict, owner))
+        
+    
+    
+def get_array_frvalues(arraydict, owner):
+    
+    array_list = []
+    system_types = ["Export cable", "Substation"]
+    
+    for system in system_types:
+        
+        comps = strip_dummy(arraydict[system])
+        if comps is None: continue
+        complist = make_component_lists(comps, system, owner)
+        array_list.extend(complist)
+    
+    return array_list
+
+
+def get_dev_frvalues(dev_list, devhierdict):
+    
+    all_devices = []
+    system_types = ['Array elec sub-system',
+                    'M&F sub-system',
+                    'User sub-systems']    
+    
+    for dev in dev_list:
+        
+        devdict = devhierdict[dev]
+        
+        devcomps = []
+        
+        for system in system_types:
+            
+            if system not in devdict: continue
+            
+            for subsystem in devdict[system].values():
+                comps = strip_dummy(subsystem)
+                if comps is None: continue
+                complist = make_component_lists(comps, system, dev)
+                devcomps.extend(complist)
+        
+        if devcomps:
+            all_devices.append(devcomps)
+        
+    if not all_devices: all_devices = None
+    
+    return all_devices
+
+
+def strip_dummy(comps):
+    
+    reduced = []
+    
+    for check in comps:
+    
+        if isinstance(check, basestring):
+            if check == "dummy":
+                reduced.append(None)
+            else:
+                reduced.append(check)
+        else:
+            reduced.append(strip_dummy(check))
+        
+    complist = [x for x in reduced if x is not None]
+    if not complist: complist = None
+    
+    return complist
+    
+
+def make_component_lists(comps, subsys, owner):
+    
+    if isinstance(comps, basestring):
+        return (comps, subsys, owner)
+    
+    complist = []
+    
+    for subcomps in comps:
+        sublist = make_component_lists(subcomps, subsys, owner)
+        if isinstance(sublist, tuple):
+            complist.append(sublist)
+        else:
+            complist.append([sublist])
+    
+    return complist
+
+
 def rcompmt(lst3, eleclayout, mtime):
     # Individual component reliabilities calculated """
     

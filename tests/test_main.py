@@ -98,14 +98,20 @@ def test_solo_moorings():
                                            'dummymoorhiereg8.txt')).read())
     dummymoorbom = eval(open(os.path.join(data_dir,
                                           'dummymoorbomeg6.txt')).read())
-    
+    dummyuserhier = eval(open(os.path.join(data_dir,
+                                           'dummyuserhiereg6.txt')).read())
+    dummyuserbom = eval(open(os.path.join(data_dir,
+                                          'dummyuserbomeg6.txt')).read())
+
     input_variables = Variables(20.0 * 365.25 * 24.0, 
                                 'tidefixed',
                                 dummydb,
                                 0.4 * 20.0 * 365.25 * 24.0,
                                 'multiplehubs',
                                 moorfoundhierdict=dummymoorhier,
-                                moorfoundbomdict=dummymoorbom)
+                                moorfoundbomdict=dummymoorbom,
+                                userhierdict=dummyuserhier,
+                                userbomdict=dummyuserbom)
                                 
     mttf, rsystime, reliatab = main(input_variables)
     

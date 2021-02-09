@@ -426,4 +426,3 @@ def main(variables):
     mttf = hierarchy.mttfarray[1]
     
     return mttf, rsystime, reliatab
- 
