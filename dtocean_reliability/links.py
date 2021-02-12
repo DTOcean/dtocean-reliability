@@ -117,8 +117,19 @@ class Component(object):
 def build_pool(array_hierarcy, device_hierachy):
     
     pool = {}
-    
     array_link = Serial("array")
+    
+    build_pool_array(array_hierarcy, array_link, pool)
+    add_layouts(array_hierarcy["layout"], array_link, pool, array_hierarcy)
+    
+    
+    pool["array"] = array_link
+    
+    return pool
+
+
+def build_pool_array(array_hierarcy, array_link, pool):
+    
     array_systems = ('Export cable', 'Substation')
     array_dict = array_hierarcy["array"]
     
@@ -134,10 +145,79 @@ def build_pool(array_hierarcy, device_hierachy):
         
         array_link.add_item(next_pool_key)
     
-    pool["array"] = array_link
-    
-    return pool
+    return
 
+
+def add_layouts(nodes, parent_link, pool, array_hierarcy):
+    
+    n_list = len([True for x in nodes if isinstance(x, list)])
+    
+    if n_list > 1:
+        
+        next_pool_key = len(pool)
+        new_parallel = Parallel()
+        pool[next_pool_key] = new_parallel
+        parent_link.add_item(next_pool_key)
+        
+        for item in nodes:
+            next_pool_key = len(pool)
+            new_serial = Serial()
+            pool[next_pool_key] = new_serial
+            add_layouts(item, new_serial, pool)
+            new_parallel.add_item(next_pool_key)
+        
+        return
+    
+    elif n_list == 1:
+        nodes = nodes[0]
+    
+    for item in nodes:
+        
+        if isinstance(item, list):
+            
+            next_pool_key = len(pool)
+            new_serial = Serial()
+            pool[next_pool_key] = new_serial
+            add_layouts(item, new_serial, pool)
+            parent_link.add_item(next_pool_key)
+        
+        elif "subhub" in item:
+            
+            next_pool_key = len(pool)
+            new_subhub = Serial(item)
+            pool[next_pool_key] = new_subhub
+            build_pool_subhub(subhub_dict, new_subhub, pool, array_hierarcy)
+            parent_link.add_item(next_pool_key)
+            
+        else:
+            
+            next_pool_key = len(pool)
+            new_subhub = Serial(item)
+            pool[next_pool_key] = new_subhub
+            parent_link.add_item(next_pool_key)
+    
+    return
+
+
+def build_pool_subhub(subhub_dict, subhub_link, pool, array_hierarcy):
+    
+    subhub_systems = ('Elec sub-system', 'Substation')
+    
+    for system in subhub_systems:
+        
+        comps = strip_dummy(subhub_dict[system])
+        if comps is None: continue
+        
+        next_pool_key = len(pool)
+        system_link = Serial(system)
+        pool[next_pool_key] = system_link
+        add_comps(comps, system_link, pool)
+        
+        subhub_link.add_item(next_pool_key)
+    
+    add_layouts(subhub_dict["layout"], subhub_link, pool, array_hierarcy)
+    
+    return
 
 def add_comps(comps, parent_link, pool):
     
