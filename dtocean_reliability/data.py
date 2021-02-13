@@ -292,6 +292,7 @@ def _combine_networks(device_type,
     
     return array_hierarcy, device_hierachy
 
+
 def _build_pool(array_hierarcy, device_hierachy):
     
     pool = {}
@@ -319,11 +320,11 @@ def _build_pool_array(array_dict, array_link, pool):
         comps = _strip_dummy(array_dict[system])
         if comps is None: continue
         
-        next_pool_key = len(pool)
         system_link = Serial(system)
-        pool[next_pool_key] = system_link
         _build_pool_comps(comps, system_link, pool)
         
+        next_pool_key = len(pool)
+        pool[next_pool_key] = system_link
         array_link.add_item(next_pool_key)
     
     return
@@ -339,21 +340,24 @@ def _build_pool_layouts(nodes,
     
     if n_list > 1:
         
-        next_pool_key = len(pool)
         new_parallel = Parallel()
-        pool[next_pool_key] = new_parallel
-        parent_link.add_item(next_pool_key)
         
         for item in nodes:
-            next_pool_key = len(pool)
+            
             new_serial = Serial()
-            pool[next_pool_key] = new_serial
             _build_pool_layouts(item,
                                 new_serial,
                                 pool,
                                 array_hierarcy,
                                 device_hierachy)
+            
+            next_pool_key = len(pool)
+            pool[next_pool_key] = new_serial
             new_parallel.add_item(next_pool_key)
+            
+        next_pool_key = len(pool)
+        pool[next_pool_key] = new_parallel
+        parent_link.add_item(next_pool_key)
         
         return
     
@@ -362,24 +366,35 @@ def _build_pool_layouts(nodes,
     
     for item in nodes:
         
-        if "subhub" in item:
+        if isinstance(item, list):
+            
+            new_serial = Serial()
+            _build_pool_layouts(item, new_serial, pool)
             
             next_pool_key = len(pool)
+            pool[next_pool_key] = new_serial
+            parent_link.add_item(next_pool_key)
+        
+        if "subhub" in item:
+            
             new_subhub = Serial(item)
-            pool[next_pool_key] = new_subhub
             _build_pool_subhub(array_hierarcy[item],
                                new_subhub,
                                pool,
                                array_hierarcy,
                                device_hierachy)
+            
+            next_pool_key = len(pool)
+            pool[next_pool_key] = new_subhub
             parent_link.add_item(next_pool_key)
             
         else:
             
-            next_pool_key = len(pool)
             new_device = Serial(item)
-            pool[next_pool_key] = new_device
             _build_pool_device(device_hierachy[item], new_device, pool)
+            
+            next_pool_key = len(pool)
+            pool[next_pool_key] = new_device
             parent_link.add_item(next_pool_key)
     
     return
@@ -398,11 +413,11 @@ def _build_pool_subhub(subhub_dict,
         comps = _strip_dummy(subhub_dict[system])
         if comps is None: continue
         
-        next_pool_key = len(pool)
         system_link = Serial(system)
-        pool[next_pool_key] = system_link
         _build_pool_comps(comps, system_link, pool)
         
+        next_pool_key = len(pool)
+        pool[next_pool_key] = system_link
         subhub_link.add_item(next_pool_key)
     
     _build_pool_layouts(subhub_dict["layout"],
@@ -464,10 +479,21 @@ def _build_pool_comps(comps, parent_link, pool):
     
     for item in comps:
         
-        next_pool_key = len(pool)
-        new_component = Component(item)
-        pool[next_pool_key] = new_component
-        parent_link.add_item(next_pool_key)
+        if isinstance(item, list):
+            
+            new_serial = Serial()
+            _build_pool_comps(item, new_serial, pool)
+            
+            next_pool_key = len(pool)
+            pool[next_pool_key] = new_serial
+            parent_link.add_item(next_pool_key)
+            
+        else:
+        
+            next_pool_key = len(pool)
+            new_component = Component(item)
+            pool[next_pool_key] = new_component
+            parent_link.add_item(next_pool_key)
     
     return
 
@@ -532,7 +558,7 @@ if __name__ == "__main__":
     
     pool = _build_pool(array_hierarcy, device_hierachy)
     
+    from links import find_all_labels
+    
     print pool['array'].display(pool)
-    #pprint.pprint(find_all_labels("id4", pool))
-    print pool[0]
-    print pool[19]
+    pprint.pprint(find_all_labels("id4", pool))
