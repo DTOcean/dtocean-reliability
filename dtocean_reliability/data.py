@@ -30,6 +30,8 @@ import logging
 from copy import deepcopy
 from collections import Counter, OrderedDict
 
+from links import Serial, Parallel, Component
+
 this_dir = os.path.dirname(os.path.realpath(__file__))
 data_dir = os.path.join(this_dir, "..", "example_data")
 
@@ -290,6 +292,205 @@ def _combine_networks(device_type,
     
     return array_hierarcy, device_hierachy
 
+def _build_pool(array_hierarcy, device_hierachy):
+    
+    pool = {}
+    array_link = Serial("array")
+    
+    array_dict = array_hierarcy["array"]
+    _build_pool_array(array_dict, array_link, pool)
+    _build_pool_layouts(array_dict["layout"],
+                        array_link,
+                        pool,
+                        array_hierarcy,
+                        device_hierachy)
+    
+    pool["array"] = array_link
+    
+    return pool
+
+
+def _build_pool_array(array_dict, array_link, pool):
+    
+    array_systems = ('Export cable', 'Substation')
+    
+    for system in array_systems:
+        
+        comps = _strip_dummy(array_dict[system])
+        if comps is None: continue
+        
+        next_pool_key = len(pool)
+        system_link = Serial(system)
+        pool[next_pool_key] = system_link
+        _build_pool_comps(comps, system_link, pool)
+        
+        array_link.add_item(next_pool_key)
+    
+    return
+
+
+def _build_pool_layouts(nodes,
+                        parent_link,
+                        pool,
+                        array_hierarcy,
+                        device_hierachy):
+    
+    n_list = len([True for x in nodes if isinstance(x, list)])
+    
+    if n_list > 1:
+        
+        next_pool_key = len(pool)
+        new_parallel = Parallel()
+        pool[next_pool_key] = new_parallel
+        parent_link.add_item(next_pool_key)
+        
+        for item in nodes:
+            next_pool_key = len(pool)
+            new_serial = Serial()
+            pool[next_pool_key] = new_serial
+            _build_pool_layouts(item,
+                                new_serial,
+                                pool,
+                                array_hierarcy,
+                                device_hierachy)
+            new_parallel.add_item(next_pool_key)
+        
+        return
+    
+    elif n_list == 1:
+        nodes = nodes[0]
+    
+    for item in nodes:
+        
+        if "subhub" in item:
+            
+            next_pool_key = len(pool)
+            new_subhub = Serial(item)
+            pool[next_pool_key] = new_subhub
+            _build_pool_subhub(array_hierarcy[item],
+                               new_subhub,
+                               pool,
+                               array_hierarcy,
+                               device_hierachy)
+            parent_link.add_item(next_pool_key)
+            
+        else:
+            
+            next_pool_key = len(pool)
+            new_device = Serial(item)
+            pool[next_pool_key] = new_device
+            _build_pool_device(device_hierachy[item], new_device, pool)
+            parent_link.add_item(next_pool_key)
+    
+    return
+
+
+def _build_pool_subhub(subhub_dict,
+                       subhub_link,
+                       pool,
+                       array_hierarcy,
+                       device_hierachy):
+    
+    subhub_systems = ('Elec sub-system', 'Substation')
+    
+    for system in subhub_systems:
+        
+        comps = _strip_dummy(subhub_dict[system])
+        if comps is None: continue
+        
+        next_pool_key = len(pool)
+        system_link = Serial(system)
+        pool[next_pool_key] = system_link
+        _build_pool_comps(comps, system_link, pool)
+        
+        subhub_link.add_item(next_pool_key)
+    
+    _build_pool_layouts(subhub_dict["layout"],
+                        subhub_link,
+                        pool,
+                        array_hierarcy,
+                        device_hierachy)
+    
+    return
+
+
+def _build_pool_device(device_dict, parent_link, pool):
+    
+    for label, system in device_dict.iteritems():
+        
+        system_link = Serial(label)
+        temp_pool = deepcopy(pool)
+        
+        if isinstance(system, dict):
+            _build_pool_device(system, system_link, temp_pool)
+        else:
+            comps = _strip_dummy(system)
+            if comps is None: continue
+            _build_pool_comps(comps, system_link, temp_pool)
+        
+        if len(temp_pool) - len(pool) == 0:
+            continue
+        
+        pool.update(temp_pool)
+        next_pool_key = len(pool)
+        pool[next_pool_key] = system_link
+        parent_link.add_item(next_pool_key)
+    
+    return
+
+
+def _build_pool_comps(comps, parent_link, pool):
+    
+    n_list = len([True for x in comps if isinstance(x, list)])
+    
+    if n_list > 1:
+        
+        next_pool_key = len(pool)
+        new_parallel = Parallel()
+        pool[next_pool_key] = new_parallel
+        parent_link.add_item(next_pool_key)
+        
+        for item in comps:
+            next_pool_key = len(pool)
+            new_serial = Serial()
+            pool[next_pool_key] = new_serial
+            _build_pool_comps(item, new_serial, pool)
+            new_parallel.add_item(next_pool_key)
+        
+        return
+    
+    elif n_list == 1:
+        comps = comps[0]
+    
+    for item in comps:
+        
+        next_pool_key = len(pool)
+        new_component = Component(item)
+        pool[next_pool_key] = new_component
+        parent_link.add_item(next_pool_key)
+    
+    return
+
+
+def _strip_dummy(comps):
+    
+    reduced = []
+    
+    for check in comps:
+    
+        if isinstance(check, basestring):
+            if check == "dummy":
+                reduced.append(None)
+            else:
+                reduced.append(check)
+        else:
+            reduced.append(_strip_dummy(check))
+        
+    complist = [x for x in reduced if x is not None]
+    if not complist: complist = None
+    
+    return complist
+
 
 if __name__ == "__main__":
     
@@ -318,8 +519,8 @@ if __name__ == "__main__":
     (electrical_network,
      moorings_network,
      user_network) = _complete_networks(electrical_network,
-                                        moorings_network,
-                                        user_network)
+                                        None,#moorings_network,
+                                        None)#user_network)
     
     array_hierarcy, device_hierachy = _combine_networks('fixed',
                                                         electrical_network,
@@ -329,10 +530,9 @@ if __name__ == "__main__":
     pprint.pprint(array_hierarcy)
     pprint.pprint(device_hierachy)
     
-    from links import build_pool, find_all_labels
-    
-    pool = build_pool(array_hierarcy, device_hierachy)
+    pool = _build_pool(array_hierarcy, device_hierachy)
     
     print pool['array'].display(pool)
-    print find_all_labels("id4", pool)
-    print pool[2].display(pool)
+    #pprint.pprint(find_all_labels("id4", pool))
+    print pool[0]
+    print pool[19]

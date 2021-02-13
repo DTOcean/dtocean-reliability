@@ -7,6 +7,7 @@
 'device006': {'Pto': ['id17', 'id18'],'Hydrodynamic': ['id19'], 'Control': ['id20', 'id21'], 'Support structure': ['id22']},
 'device007': {'Pto': ['id17', 'id18'],'Hydrodynamic': ['id19'], 'Control': ['id20', 'id21'], 'Support structure': ['id22']},
 'device008': {'Pto': ['id17', 'id18'],'Hydrodynamic': ['id19'], 'Control': ['id20', 'id21'], 'Support structure': ['id22']},
+'device009': {'Pto': ['id17', 'id18'],'Hydrodynamic': ['id19'], 'Control': ['id20', 'id21'], 'Support structure': ['id22']},
 'device010': {'Pto': ['id17', 'id18'],'Hydrodynamic': ['id19'], 'Control': ['id20', 'id21'], 'Support structure': ['id22']},
 'device011': {'Pto': ['id17', 'id18'],'Hydrodynamic': ['id19'], 'Control': ['id20', 'id21'], 'Support structure': ['id22']},
 'device012': {'Pto': ['id17', 'id18'],'Hydrodynamic': ['id19'], 'Control': ['id20', 'id21'], 'Support structure': ['id22']},

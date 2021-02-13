@@ -400,11 +400,6 @@ class Syshier(object):
         else:
             frvalues2 = arraylevelvalues + devfrvalues[0]
         
-        import pprint
-        pprint.pprint(frvalues2)
-        import sys
-        sys.exit()
-        
         # logmsg = [""]
         # logmsg.append('self.arrayfrdict  {}'.format(self.arrayfrdict))
         # module_logger.info("\n".join(logmsg))   
@@ -451,10 +446,6 @@ class Syshier(object):
             # logmsg.append('self.frvalues3  {}'.format(self.frvalues3))
             # module_logger.info("\n".join(logmsg))
         
-        pprint.pprint(frvalues2)
-        
-        import sys
-        sys.exit()
         
         ### Generation of reliability function equations
         ### Access individual lists to determine reliability at mission time
@@ -466,6 +457,12 @@ class Syshier(object):
                               self._variables.eleclayout,
                               self._variables.mtime)
         self.rcompvalues2 = copy.deepcopy(rcompvalues)
+        
+        import pprint
+        pprint.pprint(rcompvalues)
+        import sys
+        sys.exit()
+        
         
         #self.rcompvalues3 = copy.deepcopy(self.rcompvalues)
         # fil = open('RAM_outputs.txt','w');
@@ -521,7 +518,7 @@ class Syshier(object):
             # logmsg = [""]
             # logmsg.append('self.rstringvalues2 {}'.format(self.rstringvalues2))
             # module_logger.info("\n".join(logmsg))
-                  
+            
             
                     # fil.write('\r\n\r\nself.rsubhubvalues2\r\n')
                     # np.savetxt(fil,self.rsubhubvalues2,fmt='%s',delimiter='\t')

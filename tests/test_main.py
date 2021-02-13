@@ -26,42 +26,42 @@ this_dir = os.path.dirname(os.path.realpath(__file__))
 data_dir = os.path.join(this_dir, "..", "example_data")
 
 
-#def test_main():
-#    '''Test that main generates a non empty output'''
-#    
-#    dummydb = eval(open(os.path.join(data_dir, 'dummydb.txt')).read())
-#    dummyelechier = eval(open(os.path.join(data_dir,
-#                                           'dummyelechiereg8.txt')).read())
-#    dummyelecbom = eval(open(os.path.join(data_dir,
-#                                          'dummyelecbomeg6.txt')).read())
-#    dummymoorhier = eval(open(os.path.join(data_dir,
-#                                           'dummymoorhiereg8.txt')).read())
-#    dummymoorbom = eval(open(os.path.join(data_dir,
-#                                          'dummymoorbomeg6.txt')).read())
-#    dummyuserhier = eval(open(os.path.join(data_dir,
-#                                           'dummyuserhiereg6.txt')).read())
-#    dummyuserbom = eval(open(os.path.join(data_dir,
-#                                          'dummyuserbomeg6.txt')).read())
-#    
-#    input_variables = Variables(20.0 * 365.25 * 24.0,
-#                                'tidefloat',
-#                                dummydb,
-#                                0.4 * 20.0 * 365.25 * 24.0, 
-#                                'multiplehubs',
-#                                dummyelechier,
-#                                dummyelecbom,
-#                                dummymoorhier,
-#                                dummymoorbom,
-#                                dummyuserhier,
-#                                dummyuserbom)
-#                                
-#    mttf, rsystime, reliatab = main(input_variables)
-#    
-#    assert mttf
-#    assert rsystime is not None
-#    assert not reliatab.empty
-#
-#
+def test_main():
+    '''Test that main generates a non empty output'''
+    
+    dummydb = eval(open(os.path.join(data_dir, 'dummydb.txt')).read())
+    dummyelechier = eval(open(os.path.join(data_dir,
+                                           'dummyelechiereg8.txt')).read())
+    dummyelecbom = eval(open(os.path.join(data_dir,
+                                          'dummyelecbomeg6.txt')).read())
+    dummymoorhier = eval(open(os.path.join(data_dir,
+                                           'dummymoorhiereg8.txt')).read())
+    dummymoorbom = eval(open(os.path.join(data_dir,
+                                          'dummymoorbomeg6.txt')).read())
+    dummyuserhier = eval(open(os.path.join(data_dir,
+                                           'dummyuserhiereg6.txt')).read())
+    dummyuserbom = eval(open(os.path.join(data_dir,
+                                          'dummyuserbomeg6.txt')).read())
+    
+    input_variables = Variables(20.0 * 365.25 * 24.0,
+                                'tidefloat',
+                                dummydb,
+                                0.4 * 20.0 * 365.25 * 24.0, 
+                                'multiplehubs',
+                                dummyelechier,
+                                dummyelecbom,
+                                dummymoorhier,
+                                dummymoorbom,
+                                dummyuserhier,
+                                dummyuserbom)
+                                
+    mttf, rsystime, reliatab = main(input_variables)
+    
+    assert mttf
+    assert rsystime is not None
+    assert not reliatab.empty
+
+
 #def test_solo_electrical_radial():
 #    '''Test that main generates a non empty output for just the electrical
 #    network, with a radial layout.
@@ -88,36 +88,36 @@ data_dir = os.path.join(this_dir, "..", "example_data")
 #    assert not reliatab.empty
 
 
-def test_solo_moorings():
-    '''Test that main generates a non empty output for just the moorings
-    network
-    '''
-
-    dummydb = eval(open(os.path.join(data_dir, 'dummydb.txt')).read())
-    dummymoorhier = eval(open(os.path.join(data_dir,
-                                           'dummymoorhiereg8.txt')).read())
-    dummymoorbom = eval(open(os.path.join(data_dir,
-                                          'dummymoorbomeg6.txt')).read())
-    dummyuserhier = eval(open(os.path.join(data_dir,
-                                           'dummyuserhiereg6.txt')).read())
-    dummyuserbom = eval(open(os.path.join(data_dir,
-                                          'dummyuserbomeg6.txt')).read())
-
-    input_variables = Variables(20.0 * 365.25 * 24.0, 
-                                'tidefixed',
-                                dummydb,
-                                0.4 * 20.0 * 365.25 * 24.0,
-                                'multiplehubs',
-                                moorfoundhierdict=dummymoorhier,
-                                moorfoundbomdict=dummymoorbom,
-                                userhierdict=dummyuserhier,
-                                userbomdict=dummyuserbom)
-                                
-    mttf, rsystime, reliatab = main(input_variables)
-    
-    assert mttf
-    assert rsystime is not None
-    assert not reliatab.empty
+#def test_solo_moorings():
+#    '''Test that main generates a non empty output for just the moorings
+#    network
+#    '''
+#
+#    dummydb = eval(open(os.path.join(data_dir, 'dummydb.txt')).read())
+#    dummymoorhier = eval(open(os.path.join(data_dir,
+#                                           'dummymoorhiereg8.txt')).read())
+#    dummymoorbom = eval(open(os.path.join(data_dir,
+#                                          'dummymoorbomeg6.txt')).read())
+#    dummyuserhier = eval(open(os.path.join(data_dir,
+#                                           'dummyuserhiereg6.txt')).read())
+#    dummyuserbom = eval(open(os.path.join(data_dir,
+#                                          'dummyuserbomeg6.txt')).read())
+#
+#    input_variables = Variables(20.0 * 365.25 * 24.0, 
+#                                'tidefixed',
+#                                dummydb,
+#                                0.4 * 20.0 * 365.25 * 24.0,
+#                                'multiplehubs',
+#                                moorfoundhierdict=dummymoorhier,
+#                                moorfoundbomdict=dummymoorbom,
+#                                userhierdict=dummyuserhier,
+#                                userbomdict=dummyuserbom)
+#                                
+#    mttf, rsystime, reliatab = main(input_variables)
+#    
+#    assert mttf
+#    assert rsystime is not None
+#    assert not reliatab.empty
 
 
 #def test_solo_user():
