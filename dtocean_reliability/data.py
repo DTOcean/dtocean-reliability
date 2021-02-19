@@ -263,7 +263,7 @@ def _combine_networks(device_type,
             # Append anchor into each mooring line and delete foundation 
             # field from dictionary
             for i, line in enumerate(systems['Mooring system']):
-                systems['Mooring system'][i].append(anctype[i])
+                systems['Mooring system'][i].extend(anctype[i])
             
             del systems['Foundation']
         
@@ -633,5 +633,5 @@ if __name__ == "__main__":
     
     from links import find_all_labels
     
-    #print pool['array'].display(pool)
+    print pool['array'].display(pool)
     #pprint.pprint(find_all_labels("id4", pool))
