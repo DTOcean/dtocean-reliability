@@ -518,8 +518,77 @@ def _strip_dummy(comps):
     return complist
 
 
+def _set_component_failure_rates (pool,
+                                  dbdict,
+                                  severitylevel,
+                                  calcscenario):
+    
+    # For components with an id number look up respective failure rates 
+    # otherwise for designed components (i.e. shallow/gravity foundations, 
+    # direct embedment anchors and suction caissons) in addition to 
+    # grouted jointed use generic failure rate of 1.0x10^-4 failures 
+    # per annum (10 / 876 failures per 10^6 hours)
+    
+    # Note:
+    #  * If no data for a particular calculation scenario, failure rate 
+    #    defaults to mean value
+    #  * If no non-critical failure rate data is available use critical values
+    
+    designed_comps = ["dummy",
+                      "n/a",
+                      "ideal",
+                      "gravity",
+                      "shallowfoundation",
+                      "suctioncaisson",
+                      "directembedment",
+                      "grout"]
+    
+    if calcscenario == 'lower':
+        cs = 0
+    elif calcscenario == 'mean':
+        cs = 1
+    elif calcscenario == 'upper':
+        cs = 2
+    else:
+        err_str = "Argument 'calcscenario' may only take values 0, 1, or 2"
+        raise ValueError(err_str)
+    
+    for item in pool.values():
+        
+        if not isinstance(item, Component):
+            continue
+        
+        if item.label in designed_comps:
+            item.failure_rate = 10. / 876
+            continue
+        
+        dbitem = deepcopy(dbdict[item.label]['item10'])
+        
+        if severitylevel == 'critical':
+            
+            if dbitem['failratecrit'][cs] == 0.0:
+                failure_rate = dbitem['failratecrit'][1]
+            else:
+                failure_rate = dbitem['failratecrit'][cs]
+        
+        else:
+            
+            if dbitem['failratenoncrit'][1] == 0.0:
+               dbitem['failratenoncrit'] = dbitem['failratecrit']
+            
+            if dbitem['failratenoncrit'][cs] == 0.0:
+                 failure_rate = dbitem['failratenoncrit'][1]
+            else:
+                 failure_rate = dbitem['failratenoncrit'][cs]
+        
+        item.failure_rate = failure_rate
+    
+    return
+
+
 if __name__ == "__main__":
     
+    dummydb = eval(open(os.path.join(data_dir, 'dummydb.txt')).read())
     dummyelechier = eval(open(os.path.join(data_dir,
                                            'dummyelechiereg8.txt')).read())
     dummyelecbom = eval(open(os.path.join(data_dir,
@@ -545,10 +614,10 @@ if __name__ == "__main__":
     (electrical_network,
      moorings_network,
      user_network) = _complete_networks(electrical_network,
-                                        None,#moorings_network,
-                                        None)#user_network)
+                                        moorings_network,
+                                        user_network)
     
-    array_hierarcy, device_hierachy = _combine_networks('fixed',
+    array_hierarcy, device_hierachy = _combine_networks('float',
                                                         electrical_network,
                                                         moorings_network,
                                                         user_network)
@@ -557,8 +626,12 @@ if __name__ == "__main__":
     pprint.pprint(device_hierachy)
     
     pool = _build_pool(array_hierarcy, device_hierachy)
+    _set_component_failure_rates(pool,
+                                 dummydb,
+                                 'critical',
+                                 'mean')
     
     from links import find_all_labels
     
-    print pool['array'].display(pool)
-    pprint.pprint(find_all_labels("id4", pool))
+    #print pool['array'].display(pool)
+    #pprint.pprint(find_all_labels("id4", pool))

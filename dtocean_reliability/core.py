@@ -458,11 +458,6 @@ class Syshier(object):
                               self._variables.mtime)
         self.rcompvalues2 = copy.deepcopy(rcompvalues)
         
-        import pprint
-        pprint.pprint(rcompvalues)
-        import sys
-        sys.exit()
-        
         
         #self.rcompvalues3 = copy.deepcopy(self.rcompvalues)
         # fil = open('RAM_outputs.txt','w');
@@ -477,6 +472,12 @@ class Syshier(object):
                                   self._variables.eleclayout,
                                   self._variables.systype,
                                   subsyslendict)
+        
+        import pprint
+        pprint.pprint(rcompvalues)
+        pprint.pprint(rsubsysvalues)
+        import sys
+        sys.exit()
         
         self.rsubsysvalues2 = copy.deepcopy(rsubsysvalues)
         #self.rsubsysvalues3 = copy.deepcopy(self.rsubsysvalues)

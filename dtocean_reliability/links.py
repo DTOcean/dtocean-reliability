@@ -30,6 +30,7 @@ class Link(object):
     def __init__(self, label=None):
         
         self.label = label
+        self.failure_rate = None
         self._items = []
     
     @property
@@ -111,7 +112,11 @@ class Component(object):
         self.label = label
     
     def display(self, pool, pad=0):
-        return "'{}'".format(self.label)
+        if self.failure_rate is not None:
+            return "'{}: {}'".format(self.label, self.failure_rate)
+        else:
+            return "'{}'".format(self.label)
+        
     
     def __str__(self):
         out = "Component: '{}'".format(self.label)
