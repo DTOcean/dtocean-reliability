@@ -254,16 +254,18 @@ def _combine_networks(device_type,
     
         if 'float' in device_type:
             
-            if systems['Foundation'] == ['dummy']:
-                del systems['Foundation']
-                continue
+            lines = deepcopy(systems['Mooring system']) 
+            print lines
             
-            anctype = systems['Foundation']
+            for i, line in enumerate(lines):
+                systems['Mooring system'][i] = OrderedDict()
+                systems['Mooring system'][i]["Moorings lines"] = line
             
-            # Append anchor into each mooring line and delete foundation 
-            # field from dictionary
-            for i, line in enumerate(systems['Mooring system']):
-                systems['Mooring system'][i].extend(anctype[i])
+                if systems['Foundation'] == ['dummy']:
+                    continue
+            
+                systems['Mooring system'][i]["Foundation"] = \
+                                                systems['Foundation'][i]
             
             del systems['Foundation']
         
@@ -433,12 +435,28 @@ def _build_pool_device(device_dict, parent_link, pool):
     
     for label, system in device_dict.iteritems():
         
+        print label
+        print system
         system_link = Serial(label)
         temp_pool = deepcopy(pool)
         
         if isinstance(system, dict):
+            
             _build_pool_device(system, system_link, temp_pool)
+            
+        elif isinstance(system[0], dict):
+            
+            next_pool_key = len(temp_pool)
+            new_parallel = Parallel()
+            temp_pool[next_pool_key] = new_parallel
+            system_link.add_item(next_pool_key)
+            
+            for item_dict in system:
+                print item_dict
+                _build_pool_device(item_dict, new_parallel, temp_pool)
+            
         else:
+            
             comps = _strip_dummy(system)
             if comps is None: continue
             _build_pool_comps(comps, system_link, temp_pool)
@@ -626,10 +644,10 @@ if __name__ == "__main__":
     pprint.pprint(device_hierachy)
     
     pool = _build_pool(array_hierarcy, device_hierachy)
-    _set_component_failure_rates(pool,
-                                 dummydb,
-                                 'critical',
-                                 'mean')
+    #_set_component_failure_rates(pool,
+    #                             dummydb,
+    #                             'critical',
+    #                             'mean')
     
     from links import find_all_labels
     

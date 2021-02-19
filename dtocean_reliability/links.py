@@ -30,7 +30,6 @@ class Link(object):
     def __init__(self, label=None):
         
         self.label = label
-        self.failure_rate = None
         self._items = []
     
     @property
@@ -110,6 +109,7 @@ class Component(object):
     
     def __init__(self, label):
         self.label = label
+        self.failure_rate = None
     
     def display(self, pool, pad=0):
         if self.failure_rate is not None:
