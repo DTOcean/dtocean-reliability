@@ -24,6 +24,10 @@ DTOcean Reliability Assessment Module (RAM)
 .. moduleauthor:: Mathew Topper <mathew.topper@dataonlygreater.com>
 """
 
+import sys
+
+from numerics import binomial
+
 
 class Link(object):
     
@@ -59,6 +63,14 @@ class Link(object):
 
 class Serial(Link):
     
+    def get_failure_rate(self, pool):
+        result = sum(map(lambda x: pool[x].get_failure_rate(pool),
+                         self._items))
+        return result
+    
+    def get_mttf(self, pool):
+        return 1 / self.get_failure_rate(pool)
+    
     def display(self, pool, pad=0):
         
         out = "["
@@ -82,6 +94,16 @@ class Serial(Link):
 
 
 class Parallel(Link):
+    
+    def get_failure_rate(self, pool):
+        return 1 / self.get_mttf(pool)
+    
+    def get_mttf(self, pool):
+        
+        failure_rates = map(lambda x: pool[x].get_failure_rate(pool),
+                            self._items)
+        
+        return binomial(failure_rates)
     
     def display(self, pool, pad=0):
         
@@ -109,14 +131,28 @@ class Component(object):
     
     def __init__(self, label):
         self.label = label
-        self.failure_rate = None
+        self._failure_rate = None
+    
+    def set_failure_rate(self, failure_rate):
+        self._failure_rate = failure_rate
+    
+    def get_failure_rate(self, pool=None):
+        
+        if self._failure_rate is None:
+            result = sys.float_info.min
+        else:
+            result = self._failure_rate / 1e6
+        
+        return result
+    
+    def get_mttf(self, pool):
+        return 1 / self.get_failure_rate()
     
     def display(self, pool, pad=0):
-        if self.failure_rate is not None:
-            return "'{}: {}'".format(self.label, self.failure_rate)
+        if self._failure_rate is not None:
+            return "'{}: {}'".format(self.label, self.get_failure_rate())
         else:
             return "'{}'".format(self.label)
-        
     
     def __str__(self):
         out = "Component: '{}'".format(self.label)

@@ -254,8 +254,10 @@ def _combine_networks(device_type,
     
         if 'float' in device_type:
             
+            if systems['Mooring system'] == ["dummy"]:
+                break
+            
             lines = deepcopy(systems['Mooring system']) 
-            print lines
             
             for i, line in enumerate(lines):
                 systems['Mooring system'][i] = OrderedDict()
@@ -435,8 +437,6 @@ def _build_pool_device(device_dict, parent_link, pool):
     
     for label, system in device_dict.iteritems():
         
-        print label
-        print system
         system_link = Serial(label)
         temp_pool = deepcopy(pool)
         
@@ -446,14 +446,20 @@ def _build_pool_device(device_dict, parent_link, pool):
             
         elif isinstance(system[0], dict):
             
-            next_pool_key = len(temp_pool)
             new_parallel = Parallel()
+            
+            for item in system:
+                
+                item_link = Serial()
+                _build_pool_device(item, item_link, temp_pool)
+                
+                next_pool_key = len(temp_pool)
+                temp_pool[next_pool_key] = item_link
+                new_parallel.add_item(next_pool_key)
+            
+            next_pool_key = len(temp_pool)
             temp_pool[next_pool_key] = new_parallel
             system_link.add_item(next_pool_key)
-            
-            for item_dict in system:
-                print item_dict
-                _build_pool_device(item_dict, new_parallel, temp_pool)
             
         else:
             
@@ -577,7 +583,7 @@ def _set_component_failure_rates (pool,
             continue
         
         if item.label in designed_comps:
-            item.failure_rate = 10. / 876
+            item.set_failure_rate(10. / 876)
             continue
         
         dbitem = deepcopy(dbdict[item.label]['item10'])
@@ -599,7 +605,7 @@ def _set_component_failure_rates (pool,
             else:
                  failure_rate = dbitem['failratenoncrit'][cs]
         
-        item.failure_rate = failure_rate
+        item.set_failure_rate(failure_rate)
     
     return
 
@@ -627,7 +633,7 @@ if __name__ == "__main__":
     import pprint
     #pprint.pprint(user_network.hierarchy)
     
-    _check_nodes(electrical_network, None)
+    _check_nodes(electrical_network, moorings_network)
     
     (electrical_network,
      moorings_network,
@@ -644,12 +650,13 @@ if __name__ == "__main__":
     pprint.pprint(device_hierachy)
     
     pool = _build_pool(array_hierarcy, device_hierachy)
-    #_set_component_failure_rates(pool,
-    #                             dummydb,
-    #                             'critical',
-    #                             'mean')
+    _set_component_failure_rates(pool,
+                                 dummydb,
+                                 'critical',
+                                 'mean')
     
     from links import find_all_labels
     
+    #print find_all_labels("Mooring system", pool)
     print pool['array'].display(pool)
-    #pprint.pprint(find_all_labels("id4", pool))
+    print pool['array'].get_failure_rate(pool)
