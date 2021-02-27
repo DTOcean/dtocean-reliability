@@ -25,13 +25,15 @@ DTOcean Reliability Assessment Module (RAM)
 """
 
 # Built in modules
-import os
 import logging
 from copy import copy, deepcopy
 from collections import Counter, OrderedDict
 
-from data import Serial, Parallel, Component
-from data import find_all_labels, find_strings
+from .data import (Component,
+                   Parallel,
+                   Serial,
+                   find_all_labels,
+                   find_strings)
 
 # Start logging
 module_logger = logging.getLogger(__name__)
@@ -237,6 +239,17 @@ class Network(object):
                 raise RuntimeError(err_str)
         
         return index
+    
+    def __len__(self):
+        
+        result = 0
+        
+        for s in self._pool:
+            if self._pool[s].label is not None:
+                result += 1
+        
+        return result
+
 
 def _check_nodes(*networks):
     
@@ -255,6 +268,7 @@ def _check_nodes(*networks):
         raise ValueError(err_msg)
     
     return
+
 
 def _complete_networks(electrical_network,
                        moorings_network,
@@ -851,50 +865,3 @@ def _set_component_failure_rates (pool,
         item.set_failure_rate(failure_rate)
     
     return
-
-
-if __name__ == "__main__":
-    
-    this_dir = os.path.dirname(os.path.realpath(__file__))
-    data_dir = os.path.join(this_dir, "..", "example_data")
-    
-    dummydb = eval(open(os.path.join(data_dir, 'dummydb.txt')).read())
-    dummyelechier = eval(open(os.path.join(data_dir,
-                                           'dummyelechiereg8.txt')).read())
-    dummyelecbom = eval(open(os.path.join(data_dir,
-                                          'dummyelecbomeg6.txt')).read())
-    dummymoorhier = eval(open(os.path.join(data_dir,
-                                           'dummymoorhiereg8.txt')).read())
-    dummymoorbom = eval(open(os.path.join(data_dir,
-                                          'dummymoorbomeg6.txt')).read())
-    dummyuserhier = eval(open(os.path.join(data_dir,
-                                           'dummyuserhiereg6.txt')).read())
-    dummyuserbom = eval(open(os.path.join(data_dir,
-                                          'dummyuserbomeg6.txt')).read())
-    
-    electrical_network = SubNetwork(dummyelechier, dummyelecbom)
-    moorings_network = SubNetwork(dummymoorhier, dummymoorbom)
-    user_network = SubNetwork(dummyuserhier, dummyuserbom)
-
-    import pprint
-    import pandas as pd
-    #pprint.pprint(user_network.hierarchy)
-    
-    network = Network(dummydb,
-                      electrical_network,
-                      moorings_network,
-                      user_network)
-    
-    
-    print network.display()
-    #pprint.pprint(_get_indices(network._pool, "device"))
-    #pprint.pprint(find_strings(network._pool))
-    #pprint.pprint(hublist)
-    #pprint.pprint(_get_curtailments(network._pool))
-    
-    
-    new_network = network.set_failure_rates()
-    print new_network.display()
-    print pd.DataFrame(new_network.get_subsystem_metrics("M&F sub-system"))
-    #print pd.DataFrame(new_network.get_systems_metrics())
-    

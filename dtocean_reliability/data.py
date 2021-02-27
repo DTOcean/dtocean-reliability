@@ -26,7 +26,7 @@ DTOcean Reliability Assessment Module (RAM)
 
 import abc
 
-from numerics import binomial, rpn
+from .numerics import binomial, rpn
 
 
 class Link(object):

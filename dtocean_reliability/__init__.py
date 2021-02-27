@@ -25,6 +25,9 @@ from polite.configuration import Logger
 # Define build number for packaging test
 from ._build import BUILD
 
+# Convenience import
+from .network import Network, SubNetwork
+
 # Set default logging handler to avoid "No handler found" warnings.
 try:  # Python 2.7+
     from logging import NullHandler
