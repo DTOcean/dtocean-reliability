@@ -24,6 +24,7 @@ DTOcean Reliability Assessment Module (RAM)
 .. moduleauthor:: Mathew Topper <mathew.topper@dataonlygreater.com>
 """
 
+import math
 import itertools
 
 
@@ -68,3 +69,35 @@ def binomial(frpara):
     frparacalc = sum(frterms) + ((-1.0) ** (n + 1)) * (frterms[0]) ** -1.0
     
     return frparacalc
+
+
+def rpn(failure_rate, severitylevel):
+    
+    if severitylevel == 'critical':
+        multiplier = 2.0
+    elif severitylevel == 'non-critical':
+        multiplier = 1.0
+    else:
+        err_str = ("Value to argument 'severitylevel' not recognised. "
+                   "Must be one of 'critical or 'non-critical'")
+        raise ValueError(err_str)
+    
+    # Convert failures/hour to % failures/year
+    year_hours = 365.25 * 24.0
+    failure_rate_year = failure_rate * year_hours
+    probability_failure = 100.0 * (1.0 - math.exp(-failure_rate_year))
+        
+    if probability_failure < 0.01:
+        frequency_failure  = 0.0
+    elif probability_failure >= 0.01 and probability_failure < 0.1:
+        frequency_failure = 1.0
+    elif probability_failure >= 0.1 and probability_failure < 1.0:
+        frequency_failure = 2.0
+    elif probability_failure >= 1.0 and probability_failure < 10.0:
+        frequency_failure = 3.0
+    elif probability_failure >= 10.0 and probability_failure < 50.0:
+        frequency_failure = 4.0
+    elif probability_failure >= 50.0:
+        frequency_failure = 5.0
+    
+    return int(frequency_failure * multiplier)
