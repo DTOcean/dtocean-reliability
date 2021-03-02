@@ -101,3 +101,8 @@ def rpn(failure_rate, severitylevel):
         frequency_failure = 5.0
     
     return int(frequency_failure * multiplier)
+
+
+def reliability(failure_rate, time_hours):
+    return math.exp(-failure_rate * time_hours)
+    

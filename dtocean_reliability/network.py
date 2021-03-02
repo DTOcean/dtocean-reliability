@@ -106,19 +106,25 @@ class Network(object):
         
         return result
     
-    def get_systems_metrics(self):
+    def get_systems_metrics(self, time_hours=None):
         
+        indices = []
         systems = []
         failure_rates = []
         mttfs = []
         rpns = []
+        reliabilities = []
         
         # Array
         array = self._pool["array"]
+        indices.append("array")
         systems.append("array")
         failure_rates.append(array.get_failure_rate(self._pool))
         mttfs.append(array.get_mttf(self._pool))
         rpns.append(array.get_rpn(self._pool))
+        
+        if time_hours is not None:
+            reliabilities.append(array.get_reliability(self._pool, time_hours))
         
         # Subhub
         if self._subhub_indices is not None:
@@ -126,12 +132,19 @@ class Network(object):
             subhub_names = sorted(self._subhub_indices.keys())
             
             for name in subhub_names:
+                
                 idx = self._subhub_indices[name]
                 subhub = self._pool[idx]
+                
+                indices.append(idx)
                 systems.append(name)
                 failure_rates.append(subhub.get_failure_rate(self._pool))
                 mttfs.append(subhub.get_mttf(self._pool))
                 rpns.append(subhub.get_rpn(self._pool))
+                
+                if time_hours is not None:
+                    reliabilities.append(subhub.get_reliability(self._pool,
+                                                                time_hours))
         
         # Devices
         if self._device_indices is not None:
@@ -139,22 +152,35 @@ class Network(object):
             device_names = sorted(self._device_indices.keys())
             
             for name in device_names:
+                
                 idx = self._device_indices[name]
                 device = self._pool[idx]
+                
+                indices.append(idx)
                 systems.append(name)
                 failure_rates.append(device.get_failure_rate(self._pool))
                 mttfs.append(device.get_mttf(self._pool))
                 rpns.append(device.get_rpn(self._pool))
+                
+                if time_hours is not None:
+                    reliabilities.append(device.get_reliability(self._pool,
+                                                                time_hours))
         
         result = OrderedDict()
+        result["Link"] = indices
         result["System"] = systems
-        result["Failure rate"] = failure_rates
+        result["lambda"] = failure_rates
         result["MTTF"] = mttfs
+        
+        if time_hours is not None:
+            key = "R ({} hours)".format(time_hours)
+            result[key] = reliabilities
+        
         result["RPN"] = rpns
         
         return result
     
-    def get_subsystem_metrics(self, subsystem_name):
+    def get_subsystem_metrics(self, subsystem_name, time_hours=None):
         
         def get_lowest_system(labels):
             
@@ -173,14 +199,20 @@ class Network(object):
         failure_rates = []
         mttfs = []
         rpns = []
+        reliabilities = []
         
         for labels, index in zip(all_labels, indices):
             
             link = self._pool[index]
+            
             systems.append(get_lowest_system(labels))
             failure_rates.append(link.get_failure_rate(self._pool))
             mttfs.append(link.get_mttf(self._pool))
             rpns.append(link.get_rpn(self._pool))
+            
+            if time_hours is not None:
+                reliabilities.append(link.get_reliability(self._pool,
+                                                          time_hours))
         
         # Build curtailments
         curtailments = []
@@ -200,9 +232,15 @@ class Network(object):
             curtailments.append([system])
         
         result = OrderedDict()
+        result["Link"] = indices
         result["System"] = systems
-        result["Failure rate"] = failure_rates
+        result["lambda"] = failure_rates
         result["MTTF"] = mttfs
+        
+        if time_hours is not None:
+            key = "R ({} hours)".format(time_hours)
+            result[key] = reliabilities
+        
         result["RPN"] = rpns
         result["Curtails"] = curtailments
         

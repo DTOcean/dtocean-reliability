@@ -25,8 +25,9 @@ DTOcean Reliability Assessment Module (RAM)
 """
 
 import abc
+import operator
 
-from .numerics import binomial, rpn
+from .numerics import binomial, reliability, rpn
 
 
 class Link(object):
@@ -61,7 +62,6 @@ class Link(object):
         return out
 
 
-
 class ReliabilityBase(object):
     __metaclass__ = abc.ABCMeta
     
@@ -88,6 +88,10 @@ class ReliabilityBase(object):
         
         return rpn(failure_rate, self._severity_level)
     
+    @abc.abstractmethod
+    def get_reliability(self, pool, time_hours):
+        return
+
     @abc.abstractmethod
     def reset(self, pool):
         return
@@ -122,6 +126,19 @@ class Serial(Link, ReliabilityBase):
             return None
         
         return 1. / failure_rate
+    
+    def get_reliability(self, pool, time_hours):
+        
+        failure_rates = [pool[x].get_failure_rate(pool) for x in self._items
+                             if pool[x].get_failure_rate(pool) is not None]
+        
+        if not failure_rates:
+            return None
+        
+        reliabilities = map(lambda x: reliability(x, time_hours),
+                            failure_rates)
+        
+        return reduce(operator.mul, reliabilities, 1)
     
     def reset(self, pool):
         
@@ -179,6 +196,16 @@ class Parallel(Link, ReliabilityBase):
             return None
         
         return binomial(failure_rates)
+    
+    def get_reliability(self, pool, time_hours):
+        
+        f = lambda x: pool[x].get_reliability(pool, time_hours)
+        reliabilities = [1 - f(x) for x in self._items if f(x) is not None]
+        
+        if not reliabilities:
+            return None
+        
+        return 1 - reduce(operator.mul, reliabilities, 1)
     
     def reset(self, pool):
         
@@ -239,6 +266,15 @@ class Component(ReliabilityBase):
             return None
         
         return 1 / failure_rate
+    
+    def get_reliability(self, pool, time_hours):
+        
+        failure_rate = self.get_failure_rate(pool)
+        
+        if failure_rate is None:
+            return None
+        
+        return reliability(failure_rate, time_hours)
     
     def reset(self, pool):
         self._failure_rate = None

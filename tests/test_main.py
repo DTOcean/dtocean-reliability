@@ -26,6 +26,8 @@ from dtocean_reliability.main import Variables, main
 this_dir = os.path.dirname(os.path.realpath(__file__))
 data_dir = os.path.join(this_dir, "..", "example_data")
 
+pd.set_option('display.max_columns', None)
+
 
 def test_network():
     
@@ -46,10 +48,6 @@ def test_network():
     electrical_network = SubNetwork(dummyelechier, dummyelecbom)
     moorings_network = SubNetwork(dummymoorhier, dummymoorbom)
     user_network = SubNetwork(dummyuserhier, dummyuserbom)
-
-    import pprint
-    import pandas as pd
-    #pprint.pprint(user_network.hierarchy)
     
     network = Network(dummydb,
                       electrical_network,
@@ -65,10 +63,24 @@ def test_network():
     #pprint.pprint(_get_curtailments(network._pool))
     
     
-    #new_network = network.set_failure_rates()
+    import pprint
+    
+    new_network = network.set_failure_rates()
+    
+    #metrics = new_network.get_systems_metrics(720)
+    metrics = new_network.get_subsystem_metrics("Elec sub-system", 8760)
+    
+    pprint.pprint(metrics)
+    
+    for key, value in metrics.iteritems():
+        print key, len(value)
+    
     #print new_network.display()
     #print pd.DataFrame(new_network.get_subsystem_metrics("M&F sub-system"))
-    #print pd.DataFrame(new_network.get_systems_metrics())
+    df = pd.DataFrame(metrics)
+    df = df.set_index("Link")
+    
+    print df
     
     
     assert False
