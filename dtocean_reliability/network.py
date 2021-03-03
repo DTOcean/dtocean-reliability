@@ -65,7 +65,7 @@ class Network(object):
             raise ValueError (err_msg)
         
         _check_nodes(electrical_network, moorings_network)
-    
+        
         (electrical_network,
          moorings_network,
          user_network) = _complete_networks(electrical_network,
@@ -197,6 +197,8 @@ class Network(object):
         self._check_not_system(subsystem_name)
     
         all_labels, indices = find_all_labels(subsystem_name, self._pool)
+        
+        if all_labels is None: return None
         
         systems = []
         failure_rates = []
@@ -332,9 +334,15 @@ def _complete_networks(electrical_network,
             if node not in nodes:
                 nodes.append(node)
     
-    else:
+    elif moorings_network is not None:
         
         for node in moorings_network.hierarchy:
+            if node not in nodes:
+                nodes.append(node)
+    
+    else:
+        
+        for node in user_network.hierarchy:
             if node not in nodes:
                 nodes.append(node)
     
@@ -391,7 +399,7 @@ def _complete_networks(electrical_network,
                                     {'marker': [-1], 
                                      'quantity': Counter({'dummy': 1})} 
         
-        electrical_network = Network(hierarchy, bill_of_materials)
+        electrical_network = SubNetwork(hierarchy, bill_of_materials)
     
     if moorings_network is None:
         
@@ -420,7 +428,7 @@ def _complete_networks(electrical_network,
                      'Mooring system': {'quantity':
                                             Counter({'dummy': 1})}}
         
-        moorings_network = Network(hierarchy, bill_of_materials)
+        moorings_network = SubNetwork(hierarchy, bill_of_materials)
     
     dummy_hier = {'Dummy sub-system': ['dummy']}
     dummy_bom =  {'Dummy sub-system':
@@ -437,7 +445,7 @@ def _complete_networks(electrical_network,
             hierarchy[node] = deepcopy(dummy_hier)
             bill_of_materials[node] = deepcopy(dummy_bom)
         
-        user_network = Network(hierarchy, bill_of_materials)
+        user_network = SubNetwork(hierarchy, bill_of_materials)
     
     else:
         

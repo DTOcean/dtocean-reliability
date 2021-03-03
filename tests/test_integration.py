@@ -74,3 +74,176 @@ def test_full_network():
     assert elec_metrics is not None
     assert mooring_metrics is not None
     assert pto_metrics is not None
+
+
+def test_electrical_only():
+    
+    dummydb = eval(open(os.path.join(DATA_DIR, 'dummydb.txt')).read())
+    dummyelechier = eval(open(os.path.join(DATA_DIR,
+                                           'dummyelechiereg8.txt')).read())
+    dummyelecbom = eval(open(os.path.join(DATA_DIR,
+                                          'dummyelecbomeg6.txt')).read())
+    
+    electrical_network = SubNetwork(dummyelechier, dummyelecbom)
+    moorings_network = None
+    user_network = None
+    
+    network = Network(dummydb,
+                      electrical_network,
+                      moorings_network,
+                      user_network)
+    
+    critical_network = network.set_failure_rates()
+    
+    systems_metrics = critical_network.get_systems_metrics(720)
+    elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
+                                                          8760)
+    mooring_metrics = critical_network.get_subsystem_metrics('Mooring system',
+                                                             8760)
+    pto_metrics = critical_network.get_subsystem_metrics('Pto',
+                                                         8760)
+    
+    assert systems_metrics is not None
+    assert elec_metrics is not None
+    assert mooring_metrics is None
+    assert pto_metrics is None
+
+
+def test_moorings_only():
+    
+    dummydb = eval(open(os.path.join(DATA_DIR, 'dummydb.txt')).read())
+    dummymoorhier = eval(open(os.path.join(DATA_DIR,
+                                           'dummymoorhiereg8.txt')).read())
+    dummymoorbom = eval(open(os.path.join(DATA_DIR,
+                                          'dummymoorbomeg6.txt')).read())
+    
+    electrical_network = None
+    moorings_network = SubNetwork(dummymoorhier, dummymoorbom)
+    user_network = None
+    
+    network = Network(dummydb,
+                      electrical_network,
+                      moorings_network,
+                      user_network)
+    
+    critical_network = network.set_failure_rates()
+    
+    systems_metrics = critical_network.get_systems_metrics(720)
+    elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
+                                                          8760)
+    mooring_metrics = critical_network.get_subsystem_metrics('Mooring system',
+                                                             8760)
+    pto_metrics = critical_network.get_subsystem_metrics('Pto',
+                                                         8760)
+    
+    assert systems_metrics is not None
+    assert elec_metrics is None
+    assert mooring_metrics is not None
+    assert pto_metrics is None
+
+
+def test_user_only():
+    
+    dummydb = eval(open(os.path.join(DATA_DIR, 'dummydb.txt')).read())
+    dummyuserhier = eval(open(os.path.join(DATA_DIR,
+                                           'dummyuserhiereg6.txt')).read())
+    dummyuserbom = eval(open(os.path.join(DATA_DIR,
+                                          'dummyuserbomeg6.txt')).read())
+    
+    electrical_network = None
+    moorings_network = None
+    user_network = SubNetwork(dummyuserhier, dummyuserbom)
+    
+    network = Network(dummydb,
+                      electrical_network,
+                      moorings_network,
+                      user_network)
+    
+    critical_network = network.set_failure_rates()
+    
+    systems_metrics = critical_network.get_systems_metrics(720)
+    elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
+                                                          8760)
+    mooring_metrics = critical_network.get_subsystem_metrics('Mooring system',
+                                                             8760)
+    pto_metrics = critical_network.get_subsystem_metrics('Pto',
+                                                         8760)
+    
+    assert systems_metrics is not None
+    assert elec_metrics is None
+    assert mooring_metrics is  None
+    assert pto_metrics is not None
+
+
+def test_electrical_user():
+    
+    dummydb = eval(open(os.path.join(DATA_DIR, 'dummydb.txt')).read())
+    dummyelechier = eval(open(os.path.join(DATA_DIR,
+                                           'dummyelechiereg8.txt')).read())
+    dummyelecbom = eval(open(os.path.join(DATA_DIR,
+                                          'dummyelecbomeg6.txt')).read())
+    dummyuserhier = eval(open(os.path.join(DATA_DIR,
+                                           'dummyuserhiereg6.txt')).read())
+    dummyuserbom = eval(open(os.path.join(DATA_DIR,
+                                          'dummyuserbomeg6.txt')).read())
+    
+    electrical_network = SubNetwork(dummyelechier, dummyelecbom)
+    moorings_network = None
+    user_network = SubNetwork(dummyuserhier, dummyuserbom)
+    
+    network = Network(dummydb,
+                      electrical_network,
+                      moorings_network,
+                      user_network)
+    
+    critical_network = network.set_failure_rates()
+    
+    systems_metrics = critical_network.get_systems_metrics(720)
+    elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
+                                                          8760)
+    mooring_metrics = critical_network.get_subsystem_metrics('Mooring system',
+                                                             8760)
+    pto_metrics = critical_network.get_subsystem_metrics('Pto',
+                                                         8760)
+    
+    assert systems_metrics is not None
+    assert elec_metrics is not None
+    assert mooring_metrics is None
+    assert pto_metrics is not None
+
+
+def test_moorings_user():
+    
+    dummydb = eval(open(os.path.join(DATA_DIR, 'dummydb.txt')).read())
+    dummymoorhier = eval(open(os.path.join(DATA_DIR,
+                                           'dummymoorhiereg8.txt')).read())
+    dummymoorbom = eval(open(os.path.join(DATA_DIR,
+                                          'dummymoorbomeg6.txt')).read())
+    dummyuserhier = eval(open(os.path.join(DATA_DIR,
+                                           'dummyuserhiereg6.txt')).read())
+    dummyuserbom = eval(open(os.path.join(DATA_DIR,
+                                          'dummyuserbomeg6.txt')).read())
+    
+    electrical_network = None
+    moorings_network = SubNetwork(dummymoorhier, dummymoorbom)
+    user_network = SubNetwork(dummyuserhier, dummyuserbom)
+    
+    network = Network(dummydb,
+                      electrical_network,
+                      moorings_network,
+                      user_network)
+    
+    critical_network = network.set_failure_rates()
+    
+    systems_metrics = critical_network.get_systems_metrics(720)
+    elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
+                                                          8760)
+    mooring_metrics = critical_network.get_subsystem_metrics('Mooring system',
+                                                             8760)
+    pto_metrics = critical_network.get_subsystem_metrics('Pto',
+                                                         8760)
+    
+    assert systems_metrics is not None
+    assert elec_metrics is None
+    assert mooring_metrics is not None
+    assert pto_metrics is not None
