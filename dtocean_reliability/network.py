@@ -31,6 +31,7 @@ from collections import Counter, OrderedDict
 
 from .data import (Component,
                    Parallel,
+                   ReliabilityWrapper,
                    Serial,
                    find_all_labels,
                    find_strings)
@@ -166,12 +167,14 @@ class Network(object):
                     reliabilities.append(device.get_reliability(self._pool,
                                                                 time_hours))
         
+        if set(failure_rates) == set([None]): return None
+        
         result = OrderedDict()
         result["Link"] = indices
         result["System"] = systems
         result["lambda"] = failure_rates
         result["MTTF"] = mttfs
-        
+    
         if time_hours is not None:
             key = "R ({} hours)".format(time_hours)
             result[key] = reliabilities
@@ -231,6 +234,8 @@ class Network(object):
             
             curtailments.append([system])
         
+        if set(failure_rates) == set([None]): return None
+
         result = OrderedDict()
         result["Link"] = indices
         result["System"] = systems
@@ -277,6 +282,9 @@ class Network(object):
                 raise RuntimeError(err_str)
         
         return index
+    
+    def __getitem__(self, key):
+        return ReliabilityWrapper(self._pool, key)
     
     def __len__(self):
         
