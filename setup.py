@@ -66,15 +66,13 @@ class CleanPyc(Command):
 
 
 setup(name='dtocean-reliability',
-      version='2.0.0',
+      version='2.1.0.dev0',
       description='The reliability assessment module for the DTOcean tools',
       maintainer='Mathew Topper',
       maintainer_email='mathew.topper@dataonlygreater.com',
       license="GPLv3",
       packages=find_packages(),
-      install_requires=['numpy',
-                        'pandas',
-                        'polite>=0.9',
+      install_requires=['polite>=0.9',
                         'setuptools'
                         ],
       package_data={'dtocean_reliability': ['config/*.yaml']
@@ -85,4 +83,3 @@ setup(name='dtocean-reliability',
                   'cleanpyc': CleanPyc,
                   },
       )
-      
