@@ -41,6 +41,8 @@ def main():
                       moorings_network,
                       user_network)
     
+    print network.display()
+    
     critical_network = network.set_failure_rates()
     systems_metrics = critical_network.get_systems_metrics(720)
     elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",

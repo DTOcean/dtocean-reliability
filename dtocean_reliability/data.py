@@ -373,7 +373,9 @@ def find_labels(label,
     link = pool[pool_index]
     
     if (link.label is not None and
-        ((partial_match and label in link.label) or
+        ((partial_match and
+          isinstance(link.label, basestring) and
+          label in link.label) or
          (not partial_match and link.label == label))):
         
         check_label = labels[:]

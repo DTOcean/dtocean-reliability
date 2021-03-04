@@ -174,12 +174,11 @@ class Network(object):
         result["System"] = systems
         result["lambda"] = failure_rates
         result["MTTF"] = mttfs
+        result["RPN"] = rpns
     
         if time_hours is not None:
             key = "R ({} hours)".format(time_hours)
             result[key] = reliabilities
-        
-        result["RPN"] = rpns
         
         return result
     
@@ -243,12 +242,12 @@ class Network(object):
         result["System"] = systems
         result["lambda"] = failure_rates
         result["MTTF"] = mttfs
+        result["RPN"] = rpns
         
         if time_hours is not None:
             key = "R ({} hours)".format(time_hours)
             result[key] = reliabilities
         
-        result["RPN"] = rpns
         result["Curtails"] = curtailments
         
         return result
@@ -306,7 +305,6 @@ def _check_nodes(*networks):
         return
     
     test_nodes = [set(network.hierarchy.keys()) for network in networks]
-    
     unique_nodes = list(reduce(set.union, test_nodes) ^
                                         reduce(set.intersection, test_nodes))
     
@@ -339,6 +337,17 @@ def _complete_networks(electrical_network,
         for node in moorings_network.hierarchy:
             if node not in nodes:
                 nodes.append(node)
+        
+        # Fix empty array key
+        if "array" not in nodes:
+            
+            moorings_network.hierarchy["array"] = {
+                                        'Substation foundation': ['dummy']}
+            moorings_network.bill_of_materials["array"] = \
+                        {'Substation foundation': \
+                                 {'substation foundation type': 'dummy'}}
+            
+            nodes.append("array")
     
     else:
         
@@ -809,8 +818,10 @@ def _strip_dummy(comps):
                 reduced.append(None)
             else:
                 reduced.append(check)
-        else:
+        elif isinstance(check, list):
             reduced.append(_strip_dummy(check))
+        else:
+            reduced.append(check)
         
     complist = [x for x in reduced if x is not None]
     if not complist: complist = None
