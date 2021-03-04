@@ -249,7 +249,7 @@ def test_moorings_user():
     assert pto_metrics is not None
 
 
-def test_interger_keys():
+def test_integerdb_keys():
     
     dummydb = eval(open(os.path.join(DATA_DIR, 'dummydb_intkey.txt')).read())
     dummyelechier = eval(open(os.path.join(DATA_DIR,
