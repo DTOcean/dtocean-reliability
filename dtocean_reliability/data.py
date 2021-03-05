@@ -97,6 +97,10 @@ class ReliabilityBase(object):
         return reliability(failure_rate, time_hours)
     
     @abc.abstractmethod
+    def get_probability_proportion(self, pool, label):
+        return
+    
+    @abc.abstractmethod
     def reset(self, pool):
         return
     
@@ -123,6 +127,9 @@ class ReliabilityWrapper(ReliabilityBase):
     
     def get_reliability(self, time_hours):
         return self._link.get_reliability(self._pool, time_hours)
+    
+    def get_probability_proportion(self, label):
+        return self._link.get_probability_proportion(self._pool, label)
     
     def reset(self):
         raise NotImplementedError("Reset has no effect on ReliabilityWrapper")
@@ -162,6 +169,39 @@ class Serial(Link, ReliabilityBase):
             return None
         
         return 1. / failure_rate
+    
+    def get_probability_proportion(self, pool, label):
+        
+        if label == self.label:
+            return 1
+        
+        def f(x):
+            fr = pool[x].get_failure_rate(pool)
+            if fr is None: fr = 1
+            return fr
+        
+        failure_rates = {x: f(x) for x in self._items if f(x) is not None}
+        indices, rates = zip(*failure_rates.items())
+        
+        rates_sum = sum(rates)
+        rates_norm = [x / rates_sum for x in rates]
+        
+        P = 0
+        
+        for idx, rate in zip(indices, rates_norm):
+            
+            link = pool[idx]
+            
+            if label == link.label:
+                P += rate
+                continue
+            
+            if isinstance(link, Component):
+                continue
+            
+            P += rate * link.get_probability_proportion(pool, label)
+        
+        return P
     
     def reset(self, pool):
         
@@ -219,6 +259,39 @@ class Parallel(Link, ReliabilityBase):
             return None
         
         return binomial(failure_rates)
+    
+    def get_probability_proportion(self, pool, label):
+        
+        if label == self.label:
+            return 1
+        
+        def f(x):
+            fr = pool[x].get_failure_rate(pool)
+            if fr is None: fr = 1
+            return fr
+        
+        failure_rates = {x: f(x) for x in self._items if f(x) is not None}
+        indices, rates = zip(*failure_rates.items())
+        
+        rates_sum = sum(rates)
+        rates_norm = [x / rates_sum for x in rates]
+        
+        P = 0
+        
+        for idx, rate in zip(indices, rates_norm):
+            
+            link = pool[idx]
+            
+            if label == link.label:
+                P += rate
+                continue
+            
+            if isinstance(link, Component):
+                continue
+            
+            P += rate * link.get_probability_proportion(pool, label)
+        
+        return P
     
     def reset(self, pool):
         
@@ -279,6 +352,13 @@ class Component(ReliabilityBase):
             return None
         
         return 1 / failure_rate
+    
+    def get_probability_proportion(self, pool, label):
+        
+        if label == self.label:
+            return 1
+        else:
+            return 0
     
     def reset(self, pool):
         self._failure_rate = None

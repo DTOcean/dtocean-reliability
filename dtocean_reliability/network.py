@@ -73,8 +73,7 @@ class Network(object):
                                             user_network)
         
         (array_hierarcy,
-         device_hierachy) = _combine_networks('float',
-                                              electrical_network,
+         device_hierachy) = _combine_networks(electrical_network,
                                               moorings_network,
                                               user_network)
         
@@ -468,8 +467,7 @@ def _complete_networks(electrical_network,
     return electrical_network, moorings_network, user_network
 
 
-def _combine_networks(device_type,
-                      electrical_network,
+def _combine_networks(electrical_network,
                       moorings_network,
                       user_network):
     
@@ -489,31 +487,46 @@ def _combine_networks(device_type,
     for node, systems in dev_moorings_hierarchy.iteritems():
         
         if (node[0:6] != 'device'): continue
-    
-        if 'float' in device_type:
+        
+        if 'Mooring system' in systems and systems['Mooring system']:
             
             if systems['Mooring system'] == ["dummy"]:
-                break
+                
+                systems['Station keeping'] = ["dummy"]
+                
+            else:
+                
+                systems['Station keeping'] = []
             
-            lines = deepcopy(systems['Mooring system']) 
+                lines = deepcopy(systems['Mooring system']) 
+                
+                for i, line in enumerate(lines):
+                    
+                    sk_data = OrderedDict()
+                    sk_data["Moorings lines"] = line
+                    
+                    if systems['Foundation'] == ['dummy']:
+                        systems['Station keeping'].append(sk_data)
+                        continue
+                    
+                    sk_data["Foundation"] = systems['Foundation'][i]
+                    systems['Station keeping'].append(sk_data)
             
-            for i, line in enumerate(lines):
-                systems['Mooring system'][i] = OrderedDict()
-                systems['Mooring system'][i]["Moorings lines"] = line
-            
-                if systems['Foundation'] == ['dummy']:
-                    continue
-            
-                systems['Mooring system'][i]["Foundation"] = \
-                                                systems['Foundation'][i]
-            
+            del systems['Mooring system']
             del systems['Foundation']
         
         else:
             
-            del systems['Mooring system']
+            systems['Station keeping'] = {"Foundation":
+                                                    systems['Foundation']}
+            
+            del systems['Foundation']
+            if 'Mooring system' in systems:
+                del systems['Mooring system']
+        
+        if 'Umbilical' in systems and not systems['Umbilical']:
             del systems['Umbilical']
-    
+        
     for node, systems in dev_electrical_hierarchy.iteritems():
         
         if (node == 'array' or node[0:6] == 'subhub'):

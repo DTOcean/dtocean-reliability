@@ -20,17 +20,17 @@ def main():
     
     dummydb = eval(open(os.path.join(DATA_DIR, 'dummydb.txt')).read())
     dummyelechier = eval(open(os.path.join(DATA_DIR,
-                                           'dummyelechiereg8.txt')).read())
+                                           'dummyelechier.txt')).read())
     dummyelecbom = eval(open(os.path.join(DATA_DIR,
-                                          'dummyelecbomeg6.txt')).read())
+                                          'dummyelecbom.txt')).read())
     dummymoorhier = eval(open(os.path.join(DATA_DIR,
-                                           'dummymoorhiereg8.txt')).read())
+                                           'dummymoorhier.txt')).read())
     dummymoorbom = eval(open(os.path.join(DATA_DIR,
-                                          'dummymoorbomeg6.txt')).read())
+                                          'dummymoorbom.txt')).read())
     dummyuserhier = eval(open(os.path.join(DATA_DIR,
-                                           'dummyuserhiereg6.txt')).read())
+                                           'dummyuserhier.txt')).read())
     dummyuserbom = eval(open(os.path.join(DATA_DIR,
-                                          'dummyuserbomeg6.txt')).read())
+                                          'dummyuserbom.txt')).read())
     
     electrical_network = SubNetwork(dummyelechier, dummyelecbom)
     moorings_network = SubNetwork(dummymoorhier, dummymoorbom)
@@ -45,30 +45,30 @@ def main():
     
     critical_network = network.set_failure_rates()
     systems_metrics = critical_network.get_systems_metrics(720)
-    elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
-                                                          8760)
+    sk_metrics = critical_network.get_subsystem_metrics("Station keeping",
+                                                        8760)
     
     if HAS_PANDAS:
         
         systems_df = pd.DataFrame(systems_metrics)
-        elec_df = pd.DataFrame(elec_metrics)
+        sk_df = pd.DataFrame(sk_metrics)
         
         systems_df = systems_df.set_index("Link")
-        elec_df = elec_df.set_index("Link")
+        sk_df = sk_df.set_index("Link")
         
         print systems_df
         print ""
-        print elec_df
+        print sk_df
     
     else:
         
         pprint.pprint(systems_metrics)
         print ""
-        pprint.pprint(elec_metrics)
+        pprint.pprint(sk_metrics)
     
     print ""
     
-    system = critical_network[14]
+    system = critical_network[49]
     
     print system
     print system.display()
@@ -83,6 +83,15 @@ def main():
     
     for week, Rweek in zip(weeks, R):
         print "{:>8}{:>8.4f}".format(week, Rweek)
+    
+    print ""
+    
+    PFoundation = system.get_probability_proportion("Foundation")
+    PMoorings = system.get_probability_proportion("Moorings lines")
+    
+    print "P (Foundation): ", PFoundation
+    print "P (Moorings lines): ", PMoorings
+    print "P (Total): ", PFoundation + PMoorings
     
     return
 
