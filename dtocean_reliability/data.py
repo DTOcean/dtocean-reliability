@@ -328,8 +328,9 @@ class Parallel(Link, ReliabilityBase):
 
 class Component(ReliabilityBase):
     
-    def __init__(self, label):
+    def __init__(self, label, marker=None):
         self.label = label
+        self.marker = marker
         self._failure_rate = None
     
     def set_failure_rate(self, failure_rate):
@@ -371,6 +372,8 @@ class Component(ReliabilityBase):
     
     def __str__(self):
         out = "Component: '{}'".format(self.label)
+        if self.marker is not None:
+            out +="; Marker: '{}'".format(self.marker)
         return out
 
 

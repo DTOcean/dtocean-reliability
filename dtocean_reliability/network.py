@@ -297,6 +297,19 @@ class Network(object):
         return result
 
 
+class MarkedSystem(object):
+    
+    def __init__(self, ids, markers):
+        self.ids = ids
+        self.markers = markers
+    
+    def __str__(self):
+        return str(zip(self.ids, self.markers))
+    
+    def __repr__(self):
+        return self.__str__()
+
+
 def _check_nodes(*networks):
     
     isNone = [True for x in networks if x is None]
@@ -481,6 +494,8 @@ def _combine_networks(electrical_network,
     dev_moorings_hierarchy = deepcopy(moorings_network.hierarchy)
     dev_user_hierarchy = deepcopy(user_network.hierarchy)
     
+    dev_electrical_bom = deepcopy(electrical_network.bill_of_materials)
+    
     device_hierachy = {}
     array_hierarcy = {}
     
@@ -539,6 +554,10 @@ def _combine_networks(electrical_network,
                 array_hierarcy[node]['Substation'].append(substf)
         
         elif node[0:6] == 'device':
+            
+            dev_electrical_hierarchy[node] = {'Elec sub-system': 
+                MarkedSystem(dev_electrical_hierarchy[node]['Elec sub-system'],
+                             dev_electrical_bom[node]['marker'])}
             
             device_hierachy[node] = {
                     'M&F sub-system': dev_moorings_hierarchy[node], 
@@ -742,7 +761,8 @@ def _build_pool_device(device_dict, parent_link, pool):
             
             _build_pool_device(system, system_link, temp_pool)
             
-        elif isinstance(system[0], dict):
+        elif (not isinstance(system, MarkedSystem) and
+              isinstance(system[0], dict)):
             
             new_parallel = Parallel()
             
@@ -761,8 +781,18 @@ def _build_pool_device(device_dict, parent_link, pool):
             
         else:
             
-            comps = _strip_dummy(system)
-            if comps is None: continue
+            if isinstance(system, MarkedSystem):
+                
+                new_ids, new_markers = _strip_dummy_markers(system.ids,
+                                                            system.markers)
+                if new_ids is None: continue
+                comps = MarkedSystem(new_ids, new_markers)
+            
+            else:
+            
+                comps = _strip_dummy(system)
+                if comps is None: continue
+            
             _build_pool_comps(comps, system_link, temp_pool)
         
         if len(temp_pool) - len(pool) == 0:
@@ -778,6 +808,12 @@ def _build_pool_device(device_dict, parent_link, pool):
 
 def _build_pool_comps(comps, parent_link, pool):
     
+    markers = None
+    
+    if isinstance(comps, MarkedSystem):
+        markers = comps.markers
+        comps = comps.ids
+    
     n_list = len([True for x in comps if isinstance(x, list)])
     
     if n_list > 1:
@@ -787,10 +823,16 @@ def _build_pool_comps(comps, parent_link, pool):
         pool[next_pool_key] = new_parallel
         parent_link.add_item(next_pool_key)
         
-        for item in comps:
+        for idx, item in enumerate(comps):
+            
             next_pool_key = len(pool)
             new_serial = Serial()
             pool[next_pool_key] = new_serial
+            
+            if markers is not None:
+                marker = markers[idx]
+                item = MarkedSystem(item, marker)
+            
             _build_pool_comps(item, new_serial, pool)
             new_parallel.add_item(next_pool_key)
         
@@ -799,11 +841,16 @@ def _build_pool_comps(comps, parent_link, pool):
     elif n_list == 1:
         comps = comps[0]
     
-    for item in comps:
+    for idx, item in enumerate(comps):
         
         if isinstance(item, list):
             
             new_serial = Serial()
+            
+            if markers is not None:
+                marker = markers[idx]
+                item = MarkedSystem(item, marker)
+            
             _build_pool_comps(item, new_serial, pool)
             
             next_pool_key = len(pool)
@@ -811,9 +858,14 @@ def _build_pool_comps(comps, parent_link, pool):
             parent_link.add_item(next_pool_key)
             
         else:
-        
+            
+            if markers is None:
+                marker = None
+            else:
+                marker = markers[idx]
+            
             next_pool_key = len(pool)
-            new_component = Component(item)
+            new_component = Component(item, marker)
             pool[next_pool_key] = new_component
             parent_link.add_item(next_pool_key)
     
@@ -840,6 +892,38 @@ def _strip_dummy(comps):
     if not complist: complist = None
     
     return complist
+
+
+def _strip_dummy_markers(compsids, markers):
+    
+    reduced_ids = []
+    reduced_markers = []
+    
+    for compid, marker in zip(compsids, markers):
+    
+        if isinstance(compid, basestring):
+            if compid == "dummy":
+                reduced_ids.append(None)
+                reduced_markers.append(None)
+            else:
+                reduced_ids.append(compid)
+                reduced_markers.append(marker)
+        elif isinstance(compid, list):
+            new_compids, new_markers = _strip_dummy_markers(compid, marker)
+            reduced_ids.append(new_compids)
+            reduced_markers.append(new_markers)
+        else:
+            reduced_ids.append(compid)
+            reduced_markers.append(marker)
+        
+    idlist = [x for x in reduced_ids if x is not None]
+    markerlist = [x for x in reduced_markers if x is not None]
+    
+    if not idlist:
+        idlist = None
+        markerlist = None
+    
+    return idlist, markerlist
 
 
 def _set_component_failure_rates (pool,
