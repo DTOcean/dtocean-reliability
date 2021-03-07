@@ -55,7 +55,8 @@ class Network(object):
     def __init__(self, database,
                        electrical_network = None,
                        moorings_network = None,
-                       user_network = None):
+                       user_network = None,
+                       electrical_data = None):
         
         if (electrical_network is None and
             moorings_network is None and
@@ -75,7 +76,8 @@ class Network(object):
         (array_hierarcy,
          device_hierachy) = _combine_networks(electrical_network,
                                               moorings_network,
-                                              user_network)
+                                              user_network,
+                                              electrical_data)
         
         self._db = database
         self._pool = _build_pool(array_hierarcy, device_hierachy)
@@ -86,6 +88,7 @@ class Network(object):
     
     def set_failure_rates(self, severitylevel='critical',
                                 calcscenario='mean',
+                                use_kfactors=False,
                                 inplace=False):
         
         if inplace:
@@ -97,7 +100,8 @@ class Network(object):
         _set_component_failure_rates(network._pool,
                                      network._db,
                                      severitylevel,
-                                     calcscenario)
+                                     calcscenario,
+                                     use_kfactors=use_kfactors)
         
         if inplace:
             result = None
@@ -297,14 +301,14 @@ class Network(object):
         return result
 
 
-class MarkedSystem(object):
+class KSystem(object):
     
-    def __init__(self, ids, markers):
+    def __init__(self, ids, kfactors):
         self.ids = ids
-        self.markers = markers
+        self.kfactors = kfactors
     
     def __str__(self):
-        return str(zip(self.ids, self.markers))
+        return str(zip(self.ids, self.kfactors))
     
     def __repr__(self):
         return self.__str__()
@@ -482,7 +486,8 @@ def _complete_networks(electrical_network,
 
 def _combine_networks(electrical_network,
                       moorings_network,
-                      user_network):
+                      user_network,
+                      electrical_data=None):
     
     # Read in sub-system networks and consolidate into device- and array-level 
     # networks
@@ -552,12 +557,42 @@ def _combine_networks(electrical_network,
 
             for substf in substation_foundations:
                 array_hierarcy[node]['Substation'].append(substf)
+            
+            if "Export cable" in systems and electrical_data is not None:
+                
+                markers = dev_electrical_bom[node]["Export cable"]['marker']
+                kfactors = _get_kfactors(markers, electrical_data, "Quantity")
+                
+                array_hierarcy[node]["Export cable"] = \
+                                 KSystem(array_hierarcy[node]["Export cable"],
+                                         kfactors)
+            
+            if "Elec sub-system" in systems and electrical_data is not None:
+                
+                markers = dev_electrical_bom[node]["Elec sub-system"]['marker']
+                kfactors = _get_kfactors(markers, electrical_data, "Quantity")
+                
+                print markers
+                print kfactors
+                
+                if len(markers) != len(kfactors):
+                    import sys
+                    sys.exit()
+                
+                array_hierarcy[node]["Elec sub-system"] = \
+                            KSystem(array_hierarcy[node]["Elec sub-system"],
+                                    kfactors)
         
         elif node[0:6] == 'device':
             
-            dev_electrical_hierarchy[node] = {'Elec sub-system': 
-                MarkedSystem(dev_electrical_hierarchy[node]['Elec sub-system'],
-                             dev_electrical_bom[node]['marker'])}
+            if electrical_data is not None:
+            
+                markers = dev_electrical_bom[node]['marker']
+                kfactors = _get_kfactors(markers, electrical_data, "Quantity")
+                
+                dev_electrical_hierarchy[node] = {'Elec sub-system': 
+                    KSystem(dev_electrical_hierarchy[node]['Elec sub-system'],
+                            kfactors)}
             
             device_hierachy[node] = {
                     'M&F sub-system': dev_moorings_hierarchy[node], 
@@ -638,8 +673,18 @@ def _build_pool_array(array_dict, array_link, pool):
     
     for system in array_systems:
         
-        comps = _strip_dummy(array_dict[system])
-        if comps is None: continue
+        if isinstance(array_dict[system], KSystem):
+            
+            array_system = array_dict[system]
+            new_ids, new_kfactors = _strip_dummy_k(array_system.ids,
+                                                   array_system.kfactors)
+            if new_ids is None: continue
+            comps = KSystem(new_ids, new_kfactors)
+        
+        else:
+            
+            comps = _strip_dummy(array_dict[system])
+            if comps is None: continue
         
         system_link = Serial(system)
         _build_pool_comps(comps, system_link, pool)
@@ -731,8 +776,19 @@ def _build_pool_subhub(subhub_dict,
     
     for system in subhub_systems:
         
-        comps = _strip_dummy(subhub_dict[system])
-        if comps is None: continue
+        if isinstance(subhub_dict[system], KSystem):
+            
+            subhub_system = subhub_dict[system]
+            print subhub_system
+            new_ids, new_kfactors = _strip_dummy_k(subhub_system.ids,
+                                                   subhub_system.kfactors)
+            if new_ids is None: continue
+            comps = KSystem(new_ids, new_kfactors)
+        
+        else:
+            
+            comps = _strip_dummy(array_dict[system])
+            if comps is None: continue
         
         system_link = Serial(system)
         _build_pool_comps(comps, system_link, pool)
@@ -761,7 +817,7 @@ def _build_pool_device(device_dict, parent_link, pool):
             
             _build_pool_device(system, system_link, temp_pool)
             
-        elif (not isinstance(system, MarkedSystem) and
+        elif (not isinstance(system, KSystem) and
               isinstance(system[0], dict)):
             
             new_parallel = Parallel()
@@ -781,12 +837,12 @@ def _build_pool_device(device_dict, parent_link, pool):
             
         else:
             
-            if isinstance(system, MarkedSystem):
+            if isinstance(system, KSystem):
                 
-                new_ids, new_markers = _strip_dummy_markers(system.ids,
-                                                            system.markers)
+                new_ids, new_kfactors = _strip_dummy_k(system.ids,
+                                                       system.kfactors)
                 if new_ids is None: continue
-                comps = MarkedSystem(new_ids, new_markers)
+                comps = KSystem(new_ids, new_kfactors)
             
             else:
             
@@ -808,10 +864,10 @@ def _build_pool_device(device_dict, parent_link, pool):
 
 def _build_pool_comps(comps, parent_link, pool):
     
-    markers = None
+    kfactors = None
     
-    if isinstance(comps, MarkedSystem):
-        markers = comps.markers
+    if isinstance(comps, KSystem):
+        kfactors = comps.kfactors
         comps = comps.ids
     
     n_list = len([True for x in comps if isinstance(x, list)])
@@ -829,9 +885,9 @@ def _build_pool_comps(comps, parent_link, pool):
             new_serial = Serial()
             pool[next_pool_key] = new_serial
             
-            if markers is not None:
-                marker = markers[idx]
-                item = MarkedSystem(item, marker)
+            if kfactors is not None:
+                kfactor = kfactors[idx]
+                item = KSystem(item, kfactor)
             
             _build_pool_comps(item, new_serial, pool)
             new_parallel.add_item(next_pool_key)
@@ -840,6 +896,7 @@ def _build_pool_comps(comps, parent_link, pool):
     
     elif n_list == 1:
         comps = comps[0]
+        if kfactors is not None: kfactors = kfactors[0]
     
     for idx, item in enumerate(comps):
         
@@ -847,9 +904,9 @@ def _build_pool_comps(comps, parent_link, pool):
             
             new_serial = Serial()
             
-            if markers is not None:
-                marker = markers[idx]
-                item = MarkedSystem(item, marker)
+            if kfactors is not None:
+                kfactor = kfactors[idx]
+                item = KSystem(item, kfactor)
             
             _build_pool_comps(item, new_serial, pool)
             
@@ -859,13 +916,13 @@ def _build_pool_comps(comps, parent_link, pool):
             
         else:
             
-            if markers is None:
-                marker = None
+            if kfactors is None:
+                kfactor = None
             else:
-                marker = markers[idx]
+                kfactor = kfactors[idx]
             
             next_pool_key = len(pool)
-            new_component = Component(item, marker)
+            new_component = Component(item, kfactor)
             pool[next_pool_key] = new_component
             parent_link.add_item(next_pool_key)
     
@@ -894,42 +951,43 @@ def _strip_dummy(comps):
     return complist
 
 
-def _strip_dummy_markers(compsids, markers):
+def _strip_dummy_k(compsids, kfactors):
     
     reduced_ids = []
-    reduced_markers = []
+    reduced_kfactors = []
     
-    for compid, marker in zip(compsids, markers):
+    for compid, kfactor in zip(compsids, kfactors):
     
         if isinstance(compid, basestring):
             if compid == "dummy":
                 reduced_ids.append(None)
-                reduced_markers.append(None)
+                reduced_kfactors.append(None)
             else:
                 reduced_ids.append(compid)
-                reduced_markers.append(marker)
+                reduced_kfactors.append(kfactor)
         elif isinstance(compid, list):
-            new_compids, new_markers = _strip_dummy_markers(compid, marker)
+            new_compids, new_kfactors = _strip_dummy_k(compid, kfactor)
             reduced_ids.append(new_compids)
-            reduced_markers.append(new_markers)
+            reduced_kfactors.append(new_kfactors)
         else:
             reduced_ids.append(compid)
-            reduced_markers.append(marker)
+            reduced_kfactors.append(kfactor)
         
     idlist = [x for x in reduced_ids if x is not None]
-    markerlist = [x for x in reduced_markers if x is not None]
+    kfactorlist = [x for x in reduced_kfactors if x is not None]
     
     if not idlist:
         idlist = None
-        markerlist = None
+        kfactorlist = None
     
-    return idlist, markerlist
+    return idlist, kfactorlist
 
 
 def _set_component_failure_rates (pool,
                                   dbdict,
                                   severitylevel,
-                                  calcscenario):
+                                  calcscenario,
+                                  use_kfactors=False):
     
     # For components with an id number look up respective failure rates 
     # otherwise for designed components (i.e. shallow/gravity foundations, 
@@ -941,6 +999,20 @@ def _set_component_failure_rates (pool,
     #  * If no data for a particular calculation scenario, failure rate 
     #    defaults to mean value
     #  * If no non-critical failure rate data is available use critical values
+    
+    def set_failure_rate(item, failure_rate, severitylevel, use_kfactors):
+        
+        if use_kfactors and item.kfactor is not None:
+            print item.label
+            print failure_rate
+            failure_rate *= item.kfactor
+            print failure_rate
+            print ""
+        
+        item.set_failure_rate(failure_rate)
+        item.set_severity_level(severitylevel)
+        
+        return
     
     designed_comps = ["dummy",
                       "n/a",
@@ -996,34 +1068,45 @@ def _set_component_failure_rates (pool,
         
         if severity_failure_rates[cs] > 0.0:
             failure_rate = severity_failure_rates[cs]
-            item.set_failure_rate(failure_rate)
-            item.set_severity_level(severitylevel)
+            set_failure_rate(item, failure_rate, severitylevel, use_kfactors)
             continue
         
         if severity_failure_rates[mean_idx] > 0.0:
             failure_rate = severity_failure_rates[mean_idx]
-            item.set_failure_rate(failure_rate)
-            item.set_severity_level(severitylevel)
+            set_failure_rate(item, failure_rate, severitylevel, use_kfactors)
             continue
         
         other_failure_rates = dbitem[other_key]
         
         if other_failure_rates[cs] > 0.0:
             failure_rate = other_failure_rates[cs]
-            item.set_failure_rate(failure_rate)
-            item.set_severity_level(other_severitylevel)
+            set_failure_rate(item, failure_rate, severitylevel, use_kfactors)
             continue
         
         if other_failure_rates[mean_idx] > 0.0:
             failure_rate = other_failure_rates[mean_idx]
-            item.set_failure_rate(failure_rate)
-            item.set_severity_level(other_severitylevel)
+            set_failure_rate(item, failure_rate, severitylevel, use_kfactors)
             continue
         
         err_str = ("No failure rate data is set for component "
                    "'{}'").format(item.label)
         raise RuntimeError(err_str)
-        
-        item.set_failure_rate(failure_rate)
     
     return
+
+
+def _get_kfactors(markers, data, field):
+    
+    kfactors = []
+    
+    for item in markers:
+        
+        if isinstance(item, list):
+            kfactors.append(_get_kfactors(item, data, field))
+            continue
+        
+        item_data = data[item]
+        print item_data
+        kfactors.append(getattr(item_data, field))
+    
+    return kfactors
