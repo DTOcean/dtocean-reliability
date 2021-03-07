@@ -572,9 +572,6 @@ def _combine_networks(electrical_network,
                 markers = dev_electrical_bom[node]["Elec sub-system"]['marker']
                 kfactors = _get_kfactors(markers, electrical_data, "Quantity")
                 
-                print markers
-                print kfactors
-                
                 if len(markers) != len(kfactors):
                     import sys
                     sys.exit()
@@ -779,7 +776,6 @@ def _build_pool_subhub(subhub_dict,
         if isinstance(subhub_dict[system], KSystem):
             
             subhub_system = subhub_dict[system]
-            print subhub_system
             new_ids, new_kfactors = _strip_dummy_k(subhub_system.ids,
                                                    subhub_system.kfactors)
             if new_ids is None: continue
@@ -787,7 +783,7 @@ def _build_pool_subhub(subhub_dict,
         
         else:
             
-            comps = _strip_dummy(array_dict[system])
+            comps = _strip_dummy(subhub_dict[system])
             if comps is None: continue
         
         system_link = Serial(system)
@@ -1003,11 +999,7 @@ def _set_component_failure_rates (pool,
     def set_failure_rate(item, failure_rate, severitylevel, use_kfactors):
         
         if use_kfactors and item.kfactor is not None:
-            print item.label
-            print failure_rate
             failure_rate *= item.kfactor
-            print failure_rate
-            print ""
         
         item.set_failure_rate(failure_rate)
         item.set_severity_level(severitylevel)
@@ -1106,7 +1098,6 @@ def _get_kfactors(markers, data, field):
             continue
         
         item_data = data[item]
-        print item_data
         kfactors.append(getattr(item_data, field))
     
     return kfactors
