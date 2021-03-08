@@ -1,7 +1,8 @@
 
 import os
 import re
-from collections import Counter
+import csv
+from collections import Counter, namedtuple
 
 from dtocean_reliability import start_logging, Network, SubNetwork
 
@@ -34,26 +35,20 @@ def main():
                                           'dummyuserbom.txt')).read())
     
     # Pick up installation data
-    import ast
-    import csv
-    from collections import namedtuple
-    from itertools import imap
-    
     dummyelecdata_path = os.path.join(DATA_DIR, 'dummyelecdata.csv')
-    
-    dummyelecdata = {}
+    dummyelecdata = []
     
     with open(dummyelecdata_path, mode="rb") as infile:
         
         reader = csv.reader(infile)
-        slugs = [urlify(x) for x in next(reader)]
+        slugs = [slugify(x) for x in next(reader)]
         Data = namedtuple("Data", slugs)
         
         for raw in reader:
             convert = [str, str, float, eval, eval, int]
             raw = [f(x) for f, x in zip(convert, raw)]
             data = Data._make(raw)
-            dummyelecdata[int(data.Marker)] = data
+            dummyelecdata.append(data)
     
     electrical_network = SubNetwork(dummyelechier, dummyelecbom)
     moorings_network = SubNetwork(dummymoorhier, dummymoorbom)
@@ -88,7 +83,7 @@ def main():
     return
 
 
-def urlify(s):
+def slugify(s):
 
     # Remove all non-word characters (everything except numbers and letters)
     s = re.sub(r"[^\w\s]", '', s)

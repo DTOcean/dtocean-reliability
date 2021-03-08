@@ -495,6 +495,16 @@ def _combine_networks(electrical_network,
                  moorings_network,
                  user_network)
     
+    # Create dictionary from electrical data
+    if electrical_data is not None:
+    
+        electrical_data_dict = {}
+        
+        for record in electrical_data:
+            electrical_data_dict[record.Marker] = record
+        
+        electrical_data = electrical_data_dict
+    
     dev_electrical_hierarchy = deepcopy(electrical_network.hierarchy)
     dev_moorings_hierarchy = deepcopy(moorings_network.hierarchy)
     dev_user_hierarchy = deepcopy(user_network.hierarchy)
@@ -503,6 +513,8 @@ def _combine_networks(electrical_network,
     
     device_hierachy = {}
     array_hierarcy = {}
+    
+    m2km = lambda x: x / 1e3 
     
     for node, systems in dev_moorings_hierarchy.iteritems():
         
@@ -561,7 +573,10 @@ def _combine_networks(electrical_network,
             if "Export cable" in systems and electrical_data is not None:
                 
                 markers = dev_electrical_bom[node]["Export cable"]['marker']
-                kfactors = _get_kfactors(markers, electrical_data, "Quantity")
+                kfactors = _get_kfactors(markers,
+                                         electrical_data,
+                                         "Quantity",
+                                         m2km)
                 
                 array_hierarcy[node]["Export cable"] = \
                                  KSystem(array_hierarcy[node]["Export cable"],
@@ -570,7 +585,10 @@ def _combine_networks(electrical_network,
             if "Elec sub-system" in systems and electrical_data is not None:
                 
                 markers = dev_electrical_bom[node]["Elec sub-system"]['marker']
-                kfactors = _get_kfactors(markers, electrical_data, "Quantity")
+                kfactors = _get_kfactors(markers,
+                                         electrical_data,
+                                         "Quantity",
+                                         m2km)
                 
                 if len(markers) != len(kfactors):
                     import sys
@@ -585,7 +603,10 @@ def _combine_networks(electrical_network,
             if electrical_data is not None:
             
                 markers = dev_electrical_bom[node]['marker']
-                kfactors = _get_kfactors(markers, electrical_data, "Quantity")
+                kfactors = _get_kfactors(markers,
+                                         electrical_data,
+                                         "Quantity",
+                                         m2km)
                 
                 dev_electrical_hierarchy[node] = {'Elec sub-system': 
                     KSystem(dev_electrical_hierarchy[node]['Elec sub-system'],
@@ -1071,13 +1092,23 @@ def _set_component_failure_rates (pool,
         other_failure_rates = dbitem[other_key]
         
         if other_failure_rates[cs] > 0.0:
+            
             failure_rate = other_failure_rates[cs]
-            set_failure_rate(item, failure_rate, severitylevel, use_kfactors)
+            set_failure_rate(item,
+                             failure_rate,
+                             other_severitylevel,
+                             use_kfactors)
+            
             continue
         
         if other_failure_rates[mean_idx] > 0.0:
+            
             failure_rate = other_failure_rates[mean_idx]
-            set_failure_rate(item, failure_rate, severitylevel, use_kfactors)
+            set_failure_rate(item,
+                             failure_rate,
+                             other_severitylevel,
+                             use_kfactors)
+            
             continue
         
         err_str = ("No failure rate data is set for component "
@@ -1087,17 +1118,17 @@ def _set_component_failure_rates (pool,
     return
 
 
-def _get_kfactors(markers, data, field):
+def _get_kfactors(markers, data, field, adjust=lambda x: x):
     
     kfactors = []
     
     for item in markers:
         
         if isinstance(item, list):
-            kfactors.append(_get_kfactors(item, data, field))
+            kfactors.append(_get_kfactors(item, data, field, adjust))
             continue
         
         item_data = data[item]
-        kfactors.append(getattr(item_data, field))
+        kfactors.append(adjust(getattr(item_data, field)))
     
     return kfactors
