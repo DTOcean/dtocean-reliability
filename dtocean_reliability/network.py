@@ -514,8 +514,6 @@ def _combine_networks(electrical_network,
     device_hierachy = {}
     array_hierarcy = {}
     
-    m2km = lambda x: x / 1e3 
-    
     for node, systems in dev_moorings_hierarchy.iteritems():
         
         if (node[0:6] != 'device'): continue
@@ -573,10 +571,10 @@ def _combine_networks(electrical_network,
             if "Export cable" in systems and electrical_data is not None:
                 
                 markers = dev_electrical_bom[node]["Export cable"]['marker']
-                kfactors = _get_kfactors(markers,
-                                         electrical_data,
-                                         "Quantity",
-                                         m2km)
+                kfactors = _get_cable_kfactors(markers,
+                                               electrical_data)
+                
+                assert len(markers) == len(kfactors)
                 
                 array_hierarcy[node]["Export cable"] = \
                                  KSystem(array_hierarcy[node]["Export cable"],
@@ -585,14 +583,10 @@ def _combine_networks(electrical_network,
             if "Elec sub-system" in systems and electrical_data is not None:
                 
                 markers = dev_electrical_bom[node]["Elec sub-system"]['marker']
-                kfactors = _get_kfactors(markers,
-                                         electrical_data,
-                                         "Quantity",
-                                         m2km)
+                kfactors = _get_cable_kfactors(markers,
+                                               electrical_data)
                 
-                if len(markers) != len(kfactors):
-                    import sys
-                    sys.exit()
+                assert len(markers) == len(kfactors)
                 
                 array_hierarcy[node]["Elec sub-system"] = \
                             KSystem(array_hierarcy[node]["Elec sub-system"],
@@ -603,10 +597,9 @@ def _combine_networks(electrical_network,
             if electrical_data is not None:
             
                 markers = dev_electrical_bom[node]['marker']
-                kfactors = _get_kfactors(markers,
-                                         electrical_data,
-                                         "Quantity",
-                                         m2km)
+                kfactors = _get_cable_kfactors(markers, electrical_data)
+                
+                assert len(markers) == len(kfactors)
                 
                 dev_electrical_hierarchy[node] = {'Elec sub-system': 
                     KSystem(dev_electrical_hierarchy[node]['Elec sub-system'],
@@ -1118,17 +1111,24 @@ def _set_component_failure_rates (pool,
     return
 
 
-def _get_kfactors(markers, data, field, adjust=lambda x: x):
+def _get_cable_kfactors(markers, data):
     
+    m2km = lambda x: x / 1e3 
     kfactors = []
     
     for item in markers:
         
         if isinstance(item, list):
-            kfactors.append(_get_kfactors(item, data, field, adjust))
+            kfactors.append(_get_cable_kfactors(item, data))
             continue
         
         item_data = data[item]
-        kfactors.append(adjust(getattr(item_data, field)))
+        
+        if getattr(item_data, "Installation Type") in ["array", "export"]:
+            kfactor = m2km(getattr(item_data, "Quantity"))
+        else:
+            kfactor = 1
+        
+        kfactors.append(kfactor)
     
     return kfactors
