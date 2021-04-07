@@ -25,6 +25,8 @@ DTOcean Reliability Assessment Module (RAM)
 """
 
 import abc
+import random
+import string
 
 from .numerics import binomial, reliability, rpn
 
@@ -62,7 +64,9 @@ class Link(object):
 
 
 class ReliabilityBase(object):
+    
     __metaclass__ = abc.ABCMeta
+    nodenames = []
     
     def __init__(self):
         self._severity_level = "critical"
@@ -107,6 +111,20 @@ class ReliabilityBase(object):
     @abc.abstractmethod
     def display(self, pool, pad=0):
         return
+    
+    def get_node_name(self):
+        
+        for _ in range(pow(10, 6)):
+            
+            data = [random.choice(string.ascii_uppercase + string.digits)
+                                                            for _ in range(10)]
+            candidate = ''.join(data)
+            
+            if candidate not in self.nodenames:
+                self.nodenames.append(candidate)
+                return candidate
+        
+        raise RuntimeError("No unique node name found")
 
 
 class ReliabilityWrapper(ReliabilityBase):
@@ -229,6 +247,78 @@ class Serial(Link, ReliabilityBase):
             
         return out
     
+    def graph(self, pool, dot, levels=1, label=None, force_horizontal=False):
+        
+        handle = None
+        reverse_first_edge = False
+        
+        if levels == 2:
+            reverse_first_edge = True
+        
+        if self.label is not None:
+            
+            handle = self.get_node_name()
+            failure_rate = self.get_failure_rate(pool)
+            
+            if failure_rate is not None:
+                label = "{}\n&lambda; = {:.3e}".format(self.label,
+                                                       failure_rate)
+            else:
+                label = self.label
+            
+            dot.node(handle, label, style="rounded", shape="box")
+            levels -= 1
+        
+        if levels == -1 or len(self._items) == 0:
+            return handle
+        
+        last_handle = handle
+        same_rank = False
+        
+        with dot.subgraph() as s:
+            
+            first_link = pool[self._items[0]]
+            
+            if (levels == 0 and 
+                not (isinstance(first_link, Parallel) and
+                     first_link.label is None) and
+                not force_horizontal):
+                same_rank = True
+            elif (levels == 0 and 
+                  (isinstance(first_link, Parallel) and
+                   first_link.label is None)):
+                levels = 1
+            
+            if same_rank:
+                s.attr(rank='same')
+            
+            for item in self._items:
+                
+                link = pool[item]
+                
+                check_handle = link.graph(pool, s, levels, item)
+                
+                if last_handle is not None and check_handle is not None:
+                    
+                    if isinstance(link, Parallel) and link.label is None:
+                        s.edge(last_handle, check_handle, arrowhead="none")
+                    else:
+                        if same_rank:
+                            s.edge(last_handle, check_handle, minlen="3.0")
+                        elif reverse_first_edge:
+                            s.edge(last_handle, check_handle, style="invis")
+                            reverse_first_edge = False
+                        else:
+                            s.edge(last_handle, check_handle)
+                    
+                    last_handle = check_handle
+                
+                if handle is None and check_handle is not None:
+                    handle = check_handle
+                    last_handle = check_handle
+        
+        return handle
+    
     def __str__(self):
         out = "Serial: {}".format(Link.__str__(self))
         return out
@@ -321,6 +411,63 @@ class Parallel(Link, ReliabilityBase):
         
         return out
     
+    def graph(self, pool, dot, levels=1, label=None):
+        
+        out_handle = self.get_node_name()
+        
+        if self.label is not None:
+            dot.node(out_handle, self.label, style="rounded", shape="box")
+            handle = out_handle
+            levels -= 1
+        else:
+            handle = None
+            levels -= 1
+        
+        if levels == -1 or len(self._items) == 0:
+            return handle
+        
+        port_handles = []
+        
+        if self.label is not None:
+            handle = self.get_node_name()
+        else:
+            handle = out_handle
+        
+        dot.node(handle, shape="point", width="0.05")
+        
+        with dot.subgraph() as s:
+            
+            s.attr(rank='same')
+            
+            for i in xrange(len(self._items)):
+                
+                port_handle = self.get_node_name()
+                s.node(port_handle, shape="point", width="0.01")
+                port_handles.append(port_handle)
+        
+        if self.label is not None:
+            dot.edge(out_handle, handle, arrowhead="none")
+        
+        for item, phandle in zip(self._items, port_handles):
+            
+            link = pool[item]
+            
+            if levels == 0:
+                check_handle = link.graph(pool, dot, levels, item, True)
+            else:
+                check_handle = link.graph(pool, dot, levels, item)
+            
+            if check_handle is not None:
+                
+                dot.edge(handle, phandle, arrowhead="none")
+                
+                if isinstance(link, Parallel) and link.label is None:
+                    dot.edge(phandle, check_handle, arrowhead="none", weight="10")
+                else:
+                    dot.edge(phandle, check_handle, weight="10")
+        
+        return out_handle
+    
     def __str__(self):
         out = "Parallel: {}".format(Link.__str__(self))
         return out
@@ -369,6 +516,20 @@ class Component(ReliabilityBase):
             return "'{}: {:e}'".format(self.label, self.get_failure_rate())
         else:
             return "'{}'".format(self.label)
+    
+    def graph(self, pool, dot, levels=None, label=None):
+        
+        handle = self.get_node_name()
+        failure_rate = self.get_failure_rate(pool)
+        
+        if failure_rate is None:
+            label = self.label
+        else:
+            label = "{}\n&lambda; = {:.3e}".format(self.label, failure_rate)
+        
+        dot.node(handle, label, shape="box3d")
+        
+        return handle
     
     def __str__(self):
         out = "Component: '{}'".format(self.label)

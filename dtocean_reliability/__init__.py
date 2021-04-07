@@ -26,7 +26,8 @@ from polite.configuration import Logger
 from ._build import BUILD
 
 # Convenience import
-from .network import Network, SubNetwork
+from .parse import SubNetwork, slugify
+from .main import Network
 
 # Set default logging handler to avoid "No handler found" warnings.
 try:  # Python 2.7+
@@ -41,6 +42,7 @@ logging.getLogger(__name__).addHandler(NullHandler())
 # credentials
 __build__ = BUILD
 __version__ = get_distribution('dtocean-reliability').version
+
 
 
 def start_logging(level=None):

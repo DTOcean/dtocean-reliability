@@ -1,10 +1,9 @@
 
 import os
-import re
 import csv
 from collections import Counter, namedtuple
 
-from dtocean_reliability import start_logging, Network, SubNetwork
+from dtocean_reliability import start_logging, slugify, Network, SubNetwork
 
 try:
     import pandas as pd
@@ -82,16 +81,6 @@ def main():
     
     return
 
-
-def slugify(s):
-
-    # Remove all non-word characters (everything except numbers and letters)
-    s = re.sub(r"[^\w\s]", '', s)
-
-    # Replace all runs of whitespace with a single dash
-    s = re.sub(r"\s+", '_', s)
-
-    return s
 
 
 if __name__ == "__main__":
