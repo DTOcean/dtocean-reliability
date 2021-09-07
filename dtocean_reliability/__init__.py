@@ -22,9 +22,6 @@ from pkg_resources import get_distribution
 from polite.paths import ObjDirectory, UserDataDirectory, DirectoryMap
 from polite.configuration import Logger
 
-# Define build number for packaging test
-from ._build import BUILD
-
 # Convenience import
 from .parse import SubNetwork, slugify
 from .main import Network
@@ -37,12 +34,11 @@ except ImportError:
         def emit(self, record):
             pass
 
-logging.getLogger(__name__).addHandler(NullHandler())
-
 # credentials
-__build__ = BUILD
+__authors__ = ['DTOcean Developers']
 __version__ = get_distribution('dtocean-reliability').version
 
+logging.getLogger(__name__).addHandler(NullHandler())
 
 
 def start_logging(level=None):
