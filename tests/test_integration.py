@@ -65,7 +65,7 @@ def test_full_network():
     systems_metrics = critical_network.get_systems_metrics(720)
     elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
                                                           8760)
-    mooring_metrics = critical_network.get_subsystem_metrics('Mooring system',
+    mooring_metrics = critical_network.get_subsystem_metrics('Station keeping',
                                                              8760)
     pto_metrics = critical_network.get_subsystem_metrics('Pto',
                                                          8760)
@@ -98,7 +98,7 @@ def test_electrical_only():
     systems_metrics = critical_network.get_systems_metrics(720)
     elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
                                                           8760)
-    mooring_metrics = critical_network.get_subsystem_metrics('Mooring system',
+    mooring_metrics = critical_network.get_subsystem_metrics('Station keeping',
                                                              8760)
     pto_metrics = critical_network.get_subsystem_metrics('Pto',
                                                          8760)
@@ -131,7 +131,7 @@ def test_moorings_only():
     systems_metrics = critical_network.get_systems_metrics(720)
     elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
                                                           8760)
-    mooring_metrics = critical_network.get_subsystem_metrics('Mooring system',
+    mooring_metrics = critical_network.get_subsystem_metrics('Station keeping',
                                                              8760)
     pto_metrics = critical_network.get_subsystem_metrics('Pto',
                                                          8760)
@@ -164,7 +164,7 @@ def test_user_only():
     systems_metrics = critical_network.get_systems_metrics(720)
     elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
                                                           8760)
-    mooring_metrics = critical_network.get_subsystem_metrics('Mooring system',
+    mooring_metrics = critical_network.get_subsystem_metrics('Station keeping',
                                                              8760)
     pto_metrics = critical_network.get_subsystem_metrics('Pto',
                                                          8760)
@@ -201,7 +201,7 @@ def test_electrical_user():
     systems_metrics = critical_network.get_systems_metrics(720)
     elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
                                                           8760)
-    mooring_metrics = critical_network.get_subsystem_metrics('Mooring system',
+    mooring_metrics = critical_network.get_subsystem_metrics('Station keeping',
                                                              8760)
     pto_metrics = critical_network.get_subsystem_metrics('Pto',
                                                          8760)
@@ -238,7 +238,7 @@ def test_moorings_user():
     systems_metrics = critical_network.get_systems_metrics(720)
     elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
                                                           8760)
-    mooring_metrics = critical_network.get_subsystem_metrics('Mooring system',
+    mooring_metrics = critical_network.get_subsystem_metrics('Station keeping',
                                                              8760)
     pto_metrics = critical_network.get_subsystem_metrics('Pto',
                                                          8760)
@@ -271,7 +271,7 @@ def test_integerdb_keys():
     systems_metrics = critical_network.get_systems_metrics(720)
     elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
                                                           8760)
-    mooring_metrics = critical_network.get_subsystem_metrics('Mooring system',
+    mooring_metrics = critical_network.get_subsystem_metrics('Station keeping',
                                                              8760)
     pto_metrics = critical_network.get_subsystem_metrics('Pto',
                                                          8760)

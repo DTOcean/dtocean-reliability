@@ -52,6 +52,13 @@ $ conda activate _dtocean_rely
 $ copy .condarc %CONDA_PREFIX%
 ```
 
+OR, if you're using Powershell:
+
+```
+$ conda activate _dtocean_moor
+$ copy .condarc $env:CONDA_PREFIX
+```
+
 Install [polite](https://github.com/DTOcean/polite) into the environment. For 
 example, if installing it from source:
 
@@ -96,7 +103,7 @@ $ conda install -y pytest
 Run the tests:
 
 ``` 
-$ py.test tests
+$ pytest tests
 ```
 
 ### Uninstall
@@ -121,6 +128,9 @@ Example scripts are available in the "examples" folder of the source code.
 $ cd examples
 $ python example.py
 ```
+
+The `pandas` package can optionally be installed to view the example output 
+as DataFrames.
 
 ## Contributing
 
