@@ -55,7 +55,7 @@ $ copy .condarc %CONDA_PREFIX%
 OR, if you're using Powershell:
 
 ```
-$ conda activate _dtocean_moor
+$ conda activate _dtocean_rely
 $ copy .condarc $env:CONDA_PREFIX
 ```
 

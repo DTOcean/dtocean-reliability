@@ -60,13 +60,13 @@ class KSystem(object):
 
 
 def slugify(s):
-
+    
     # Remove all non-word characters (everything except numbers and letters)
     s = re.sub(r"[^\w\s]", '', s)
-
+    
     # Replace all runs of whitespace with a single dash
     s = re.sub(r"\s+", '_', s)
-
+    
     return str(s)
 
 
@@ -91,7 +91,7 @@ def check_nodes(*networks):
 def complete_networks(electrical_network,
                       moorings_network,
                       user_network):
-
+    
     # Determine which hierarchies/boms are available and create dummy
     # versions for any which are missing
     

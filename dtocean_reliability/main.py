@@ -259,26 +259,6 @@ class Network(object):
                        "{}").format(reserved_str)
             raise ValueError(err_str)
     
-    def _find_system_index(self, system_name):
-        
-        try:
-            
-            _, index = find_all_labels(system_name,
-                                       self._pool,
-                                       return_one=True)
-        
-        except RuntimeError:
-            
-            try:
-                _, index = find_all_labels(system_name,
-                                           self._pool,
-                                           return_shortest=True)
-            except RuntimeError:
-                err_str = "No unique subsystem failure rate could be found"
-                raise RuntimeError(err_str)
-        
-        return index
-    
     def __getitem__(self, key):
         return ReliabilityWrapper(self._pool, key)
     

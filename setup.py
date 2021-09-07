@@ -99,7 +99,8 @@ setup(name='dtocean-reliability',
       package_data={'dtocean_reliability': ['config/*.yaml']
                     },
       zip_safe=False, # Important for reading config files
-      tests_require=['pytest'],
+      tests_require=['numpy',
+                     'pytest'],
       cmdclass = {'test': PyTest,
                   'cleanpyc': CleanPyc,
                   },
