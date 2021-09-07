@@ -38,6 +38,33 @@ def database():
                     }}
 
 
+@pytest.fixture(scope="module")
+def database_partial():
+    
+    return {'id1': {'item10': {'failratecrit': [-1, -1, -1],
+                               'failratenoncrit': [-1, 2, -1]},
+                    },
+            'id2': {'item10': {'failratecrit': [-1, -1, -1],
+                               'failratenoncrit': [-1, 2, -1]},
+                    },
+            'id3': {'item10': {'failratecrit': [-1, -1, -1],
+                               'failratenoncrit': [-1, 2, -1]},
+                    }}
+
+
+@pytest.fixture(scope="module")
+def database_empty():
+    
+    return {'id1': {'item10': {'failratecrit': [-1, -1, -1],
+                               'failratenoncrit': [-1, -1, -1]},
+                    },
+            'id2': {'item10': {'failratecrit': [-1, -1, -1],
+                               'failratenoncrit': [-1, -1, -1]},
+                    },
+            'id3': {'item10': {'failratecrit': [-1, -1, -1],
+                               'failratenoncrit': [-1, -1, -1]},
+                    }}
+
 
 @pytest.fixture
 def electrical_network():
@@ -116,6 +143,50 @@ def test_network_set_failure_rates_calcscenario(database,
     
     test = network.get_systems_metrics()
     assert np.isclose(test['lambda'][0], expected)
+
+
+@pytest.mark.parametrize("calcscenario, expected", [
+    ('lower', 3 * 2 / 1e6),
+    ('mean', 3 * 2 / 1e6),
+    ('upper', 3 * 2 / 1e6),
+])
+def test_network_set_failure_rates_partial(database_partial,
+                                           electrical_network,
+                                           calcscenario,
+                                           expected):
+    
+    network = Network(database_partial, electrical_network)
+    network.set_failure_rates(calcscenario=calcscenario, inplace=True)
+    
+    test = network.get_systems_metrics()
+    assert np.isclose(test['lambda'][0], expected)
+
+
+def test_network_set_failure_rates_empty(database_empty,
+                                         electrical_network):
+    
+    network = Network(database_empty, electrical_network)
+    
+    with pytest.raises(RuntimeError) as excinfo:
+        network.set_failure_rates(inplace=True)
+    
+    assert "No failure rate data is set" in str(excinfo.value)
+
+
+@pytest.mark.parametrize("severitylevel, expected", [
+    ('critical', 8),
+    ('noncritical', 3),
+])
+def test_network_get_systems_metrics_rpn(database,
+                                         electrical_network,
+                                         severitylevel,
+                                         expected):
+    
+    network = Network(database, electrical_network)
+    network.set_failure_rates(severitylevel=severitylevel, inplace=True)
+    
+    test = network.get_systems_metrics()
+    assert np.isclose(test['RPN'][0], expected)
 
 
 def test_network_get_subsystem_metrics_bad_system_name(database,

@@ -54,6 +54,7 @@ class Link(object):
         
         if self.label is not None:
             out += "{}: ".format(self.label)
+        
         for item in self._items:
             out += "{} ".format(item)
         
@@ -476,6 +477,7 @@ class Parallel(Link, ReliabilityBase):
 class Component(ReliabilityBase):
     
     def __init__(self, label, kfactor=None):
+        ReliabilityBase.__init__(self)
         self.label = label
         self.kfactor = kfactor
         self._failure_rate = None

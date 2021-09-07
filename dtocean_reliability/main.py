@@ -343,7 +343,6 @@ def _set_component_failure_rates (pool,
             failure_rate *= item.kfactor
         
         item.set_failure_rate(failure_rate)
-        item.set_severity_level(severitylevel)
         
         return
     
@@ -388,12 +387,13 @@ def _set_component_failure_rates (pool,
     
     for item in pool.values():
         
+        item.set_severity_level(severitylevel)
+        
         if not isinstance(item, Component):
             continue
         
         if item.label in designed_comps:
             item.set_failure_rate(10. / 876)
-            item.set_severity_level(severitylevel)
             continue
         
         dbitem = deepcopy(dbdict[item.label]['item10'])

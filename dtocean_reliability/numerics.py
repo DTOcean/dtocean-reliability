@@ -75,11 +75,11 @@ def rpn(failure_rate, severitylevel):
     
     if severitylevel == 'critical':
         multiplier = 2.0
-    elif severitylevel == 'non-critical':
+    elif severitylevel == 'noncritical':
         multiplier = 1.0
     else:
         err_str = ("Value to argument 'severitylevel' not recognised. "
-                   "Must be one of 'critical or 'non-critical'")
+                   "Must be one of 'critical or 'noncritical'")
         raise ValueError(err_str)
     
     # Convert failures/hour to % failures/year
