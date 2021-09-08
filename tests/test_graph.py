@@ -15,15 +15,50 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import math
 
 import pytest
+import numpy as np
+import graphviz as gv
 
-from dtocean_reliability.graph import Link, Component
+from dtocean_reliability.graph import Link, Component, Serial, Parallel
 
 
 @pytest.fixture
 def pool_dummy():
     return None
+
+
+@pytest.fixture
+def pool():
+    
+    comp_zero = Component("zero")
+    comp_zero.set_failure_rate(2)
+    
+    comp_one = Component("one")
+    comp_one.set_failure_rate(2)
+    
+    pool = {0: comp_zero,
+            1: comp_one}
+    
+    return pool
+
+
+@pytest.fixture
+def pool_zero():
+    
+    comp_zero = Component("zero")
+    comp_zero.set_failure_rate(0)
+    
+    comp_one = Component("one")
+    comp_one.set_failure_rate(0)
+    
+    pool = {0: comp_zero,
+            1: comp_one}
+    
+    return pool
+
+
 
 def test_Link_len():
     
@@ -105,4 +140,247 @@ def test_Component_get_probability_proportion(pool_dummy, label, expected):
     assert test.get_probability_proportion(pool_dummy, label) == expected
 
 
+def test_Component_graph_no_failure_rate(pool_dummy):
+    
+    label = "test"
+    test = Component(label)
+    dot = gv.Digraph()
+    handle = test.graph(pool_dummy, dot)
+    
+    assert handle in dot.source
+    assert label in dot.source
 
+
+def test_Component_graph_failure_rate(pool_dummy):
+    
+    label = "test"
+    failure_rate = 2
+    
+    test = Component(label)
+    test.set_failure_rate(failure_rate)
+    dot = gv.Digraph()
+    handle = test.graph(pool_dummy, dot)
+    
+    assert handle in dot.source
+    assert label in dot.source
+    assert str(failure_rate) in dot.source
+
+
+def test_Component_str():
+    label = "test"
+    test = Component(label)
+    assert label in str(test)
+
+
+def test_Component_str_kfactor():
+    kfactor = 1
+    test = Component("test", kfactor=kfactor)
+    assert "k-factor" in str(test)
+    assert str(kfactor) in str(test)
+
+
+def test_Serial_init():
+    test = Serial("test")
+    assert isinstance(test, Serial)
+
+
+def test_Serial_get_failure_rate_none(pool):
+    test = Serial("test")
+    assert test.get_failure_rate(pool) is None
+
+
+def test_Serial_get_mttf_none(pool):
+    test = Serial("test")
+    assert test.get_mttf(pool) is None
+
+
+def test_Serial_get_rpn_none(pool):
+    test = Serial("test")
+    assert test.get_rpn(pool) is None
+
+
+def test_Serial_get_rpn(pool):
+    test = Serial("test")
+    test.add_item(0)
+    test.add_item(1)
+    assert test.get_rpn(pool) == 6
+
+
+def test_Serial_get_reliability_none(pool):
+    test = Serial("test")
+    assert test.get_reliability(pool, 1) is None
+
+
+def test_Serial_get_reliability(pool_zero):
+    test = Serial("test")
+    test.add_item(0)
+    test.add_item(1)
+    assert test.get_reliability(pool_zero, 1) == 1
+
+
+def test_Serial_reset(pool):
+    test = Serial("test")
+    test.add_item(0)
+    test.add_item(1)
+    test.reset(pool)
+    assert test.get_failure_rate(pool) is None
+
+
+def test_Serial_display_none(pool_dummy):
+    test = Serial("test")
+    assert test.display(pool_dummy) == "[test:]"
+
+
+@pytest.mark.parametrize("label, expected", [
+    ('test', 1),
+    ('other', 0),
+])
+def test_Serial_get_probability_proportion_empty(pool_dummy, label, expected):
+    test = Serial("test")
+    assert test.get_probability_proportion(pool_dummy, label) == expected
+
+
+def test_Serial_get_probability_proportion(pool):
+    test = Serial("test")
+    test.add_item(0)
+    test.add_item(1)
+    assert test.get_probability_proportion(pool, "zero") == 0.5
+
+
+def test_Serial_graph_no_failure_rate(pool_dummy):
+    
+    label = "test"
+    test = Serial(label)
+    dot = gv.Digraph()
+    handle = test.graph(pool_dummy, dot)
+    
+    assert handle in dot.source
+    assert label in dot.source
+
+
+def test_Serial_graph_failure_rate(pool_zero):
+    
+    label = "test"
+    
+    test = Serial(label)
+    test.add_item(0)
+    test.add_item(1)
+    dot = gv.Digraph()
+    handle = test.graph(pool_zero, dot)
+    
+    assert handle in dot.source
+    assert label in dot.source
+    assert str(0) in dot.source
+
+
+def test_Serial_str():
+    label = "test"
+    test = Serial(label)
+    assert label in str(test)
+
+
+def test_Parallel_init():
+    test = Parallel("test")
+    assert isinstance(test, Parallel)
+
+
+def test_Parallel_get_failure_rate_none(pool):
+    test = Parallel("test")
+    assert test.get_failure_rate(pool) is None
+
+
+def test_Parallel_get_mttf_none(pool):
+    test = Parallel("test")
+    assert test.get_mttf(pool) is None
+
+
+def test_Parallel_get_mttf(pool):
+    test = Parallel("test")
+    test.add_item(0)
+    test.add_item(1)
+    assert np.isclose(test.get_mttf(pool), 3e6 / 4.)
+
+
+def test_Parallel_get_rpn_none(pool):
+    test = Parallel("test")
+    assert test.get_rpn(pool) is None
+
+
+def test_Parallel_get_rpn(pool):
+    test = Parallel("test")
+    test.add_item(0)
+    test.add_item(1)
+    assert test.get_rpn(pool) == 6
+
+
+def test_Parallel_get_reliability_none(pool):
+    test = Parallel("test")
+    assert test.get_reliability(pool, 1) is None
+
+
+def test_Parallel_get_reliability(pool):
+    test = Parallel("test")
+    test.add_item(0)
+    test.add_item(1)
+    assert test.get_reliability(pool, 1) == math.exp(-4 / 3e6)
+
+
+def test_Parallel_reset(pool):
+    test = Parallel("test")
+    test.add_item(0)
+    test.add_item(1)
+    test.reset(pool)
+    assert test.get_failure_rate(pool) is None
+
+
+def test_Parallel_display_none(pool_dummy):
+    test = Parallel("test")
+    assert test.display(pool_dummy) == "<test:>"
+
+
+@pytest.mark.parametrize("label, expected", [
+    ('test', 1),
+    ('other', 0),
+])
+def test_Parallel_get_probability_proportion_empty(pool_dummy, label, expected):
+    test = Parallel("test")
+    assert test.get_probability_proportion(pool_dummy, label) == expected
+
+
+def test_Parallel_get_probability_proportion(pool):
+    test = Parallel("test")
+    test.add_item(0)
+    test.add_item(1)
+    assert test.get_probability_proportion(pool, "zero") == 0.5
+
+
+def test_Parallel_graph_no_failure_rate(pool_dummy):
+    
+    label = "test"
+    test = Parallel(label)
+    dot = gv.Digraph()
+    handle = test.graph(pool_dummy, dot)
+    
+    assert handle in dot.source
+    assert label in dot.source
+
+
+#def test_Parallel_graph_failure_rate(pool_zero):
+#    
+#    label = "test"
+#    
+#    test = Parallel(label)
+#    test.add_item(0)
+#    test.add_item(1)
+#    dot = gv.Digraph()
+#    handle = test.graph(pool_zero, dot)
+#    
+#    assert handle in dot.source
+#    assert label in dot.source
+#    assert str(0) in dot.source
+
+
+def test_Parallel_str():
+    label = "test"
+    test = Parallel(label)
+    assert label in str(test)

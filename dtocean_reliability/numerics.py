@@ -64,8 +64,11 @@ def binomial(frpara):
         if (frint % 2 == 0):
             frgroupsum = -frgroupsum
         
+        print frgroupsum
+        
         frterms.append(frgroupsum)
     
+    print ((-1.0) ** (n + 1)) * (frterms[0]) ** -1.0
     frparacalc = sum(frterms) + ((-1.0) ** (n + 1)) * (frterms[0]) ** -1.0
     
     return frparacalc

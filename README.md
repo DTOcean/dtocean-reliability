@@ -97,7 +97,7 @@ $ conda activate _dtocean_rely
 Install packages required for testing to the environment (one time only):
 
 ```
-$ conda install -y pytest
+$ conda install -y numpy python-graphviz pytest
 ```
 
 Run the tests:

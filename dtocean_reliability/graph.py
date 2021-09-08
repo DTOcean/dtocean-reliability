@@ -163,6 +163,72 @@ class ReliabilityWrapper(ReliabilityBase):
         return self._link.__str__()
 
 
+class Component(ReliabilityBase):
+    
+    def __init__(self, label, kfactor=None):
+        ReliabilityBase.__init__(self)
+        self.label = label
+        self.kfactor = kfactor
+        self._failure_rate = None
+    
+    def set_failure_rate(self, failure_rate):
+        self._failure_rate = failure_rate
+    
+    def get_failure_rate(self, pool=None):
+        
+        if self._failure_rate is None:
+            result = None
+        else:
+            result = self._failure_rate / 1e6
+        
+        return result
+    
+    def get_mttf(self, pool):
+        
+        failure_rate = self.get_failure_rate(pool)
+        
+        if failure_rate is None:
+            return None
+        
+        return 1 / failure_rate
+    
+    def get_probability_proportion(self, pool, label):
+        
+        if label == self.label:
+            return 1
+        else:
+            return 0
+    
+    def reset(self, pool):
+        self._failure_rate = None
+    
+    def display(self, pool, pad=0):
+        if self._failure_rate is not None:
+            return "'{}: {:e}'".format(self.label, self.get_failure_rate())
+        else:
+            return "'{}'".format(self.label)
+    
+    def graph(self, pool, dot, levels=None, label=None):
+        
+        handle = self.get_node_name()
+        failure_rate = self.get_failure_rate(pool)
+        
+        if failure_rate is None:
+            label = self.label
+        else:
+            label = "{}\n&lambda; = {:.3e}".format(self.label, failure_rate)
+        
+        dot.node(handle, label, shape="box3d")
+        
+        return handle
+    
+    def __str__(self):
+        out = "Component: '{}'".format(self.label)
+        if self.kfactor is not None:
+            out +="; k-factor: '{}'".format(self.kfactor)
+        return out
+
+
 class Serial(Link, ReliabilityBase):
     
     def __init__(self, label=None):
@@ -200,6 +266,8 @@ class Serial(Link, ReliabilityBase):
             return fr
         
         failure_rates = {x: f(x) for x in self._items if f(x) is not None}
+        if not failure_rates: return 0
+        
         indices, rates = zip(*failure_rates.items())
         
         rates_sum = sum(rates)
@@ -349,6 +417,8 @@ class Parallel(Link, ReliabilityBase):
         if not failure_rates:
             return None
         
+        print failure_rates
+        
         return binomial(failure_rates)
     
     def get_probability_proportion(self, pool, label):
@@ -362,6 +432,7 @@ class Parallel(Link, ReliabilityBase):
             return fr
         
         failure_rates = {x: f(x) for x in self._items if f(x) is not None}
+        if not failure_rates: return 0
         indices, rates = zip(*failure_rates.items())
         
         rates_sum = sum(rates)
@@ -471,72 +542,6 @@ class Parallel(Link, ReliabilityBase):
     
     def __str__(self):
         out = "Parallel: {}".format(Link.__str__(self))
-        return out
-
-
-class Component(ReliabilityBase):
-    
-    def __init__(self, label, kfactor=None):
-        ReliabilityBase.__init__(self)
-        self.label = label
-        self.kfactor = kfactor
-        self._failure_rate = None
-    
-    def set_failure_rate(self, failure_rate):
-        self._failure_rate = failure_rate
-    
-    def get_failure_rate(self, pool=None):
-        
-        if self._failure_rate is None:
-            result = None
-        else:
-            result = self._failure_rate / 1e6
-        
-        return result
-    
-    def get_mttf(self, pool):
-        
-        failure_rate = self.get_failure_rate(pool)
-        
-        if failure_rate is None:
-            return None
-        
-        return 1 / failure_rate
-    
-    def get_probability_proportion(self, pool, label):
-        
-        if label == self.label:
-            return 1
-        else:
-            return 0
-    
-    def reset(self, pool):
-        self._failure_rate = None
-    
-    def display(self, pool, pad=0):
-        if self._failure_rate is not None:
-            return "'{}: {:e}'".format(self.label, self.get_failure_rate())
-        else:
-            return "'{}'".format(self.label)
-    
-    def graph(self, pool, dot, levels=None, label=None):
-        
-        handle = self.get_node_name()
-        failure_rate = self.get_failure_rate(pool)
-        
-        if failure_rate is None:
-            label = self.label
-        else:
-            label = "{}\n&lambda; = {:.3e}".format(self.label, failure_rate)
-        
-        dot.node(handle, label, shape="box3d")
-        
-        return handle
-    
-    def __str__(self):
-        out = "Component: '{}'".format(self.label)
-        if self.kfactor is not None:
-            out +="; k-factor: '{}'".format(self.kfactor)
         return out
 
 

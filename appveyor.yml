@@ -34,7 +34,7 @@ install:
   - conda install polite=0.10.0
   - conda install --file requirements-conda-dev.txt
   - pip install -e .
-  - conda install numpy pytest pytest-cov=2.5.1
+  - conda install numpy python-graphviz pytest pytest-cov=2.5.1
   
 build: off
   
