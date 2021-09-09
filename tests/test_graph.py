@@ -59,6 +59,30 @@ def pool_zero():
     return pool
 
 
+@pytest.fixture
+def pool_serial():
+    
+    comp_zero = Component("zero")
+    comp_zero.set_failure_rate(2)
+    
+    comp_one = Component("one")
+    comp_one.set_failure_rate(2)
+    
+    comp_two = Component("two")
+    comp_two.set_failure_rate(2)
+    
+    serial = Serial()
+    serial.add_item(2)
+    serial.add_item(3)
+    
+    pool = {0: comp_zero,
+            1: serial,
+            2: comp_one,
+            3: comp_two}
+    
+    return pool
+
+
 
 def test_Link_len():
     
@@ -247,6 +271,14 @@ def test_Serial_get_probability_proportion(pool):
     assert test.get_probability_proportion(pool, "zero") == 0.5
 
 
+def test_Serial_get_probability_proportion_serial(pool_serial):
+    test = Serial("test")
+    test.add_item(0)
+    test.add_item(1)
+    result = test.get_probability_proportion(pool_serial, "zero")
+    assert np.isclose(result, 1. / 3)
+
+
 def test_Serial_graph_no_failure_rate(pool_dummy):
     
     label = "test"
@@ -271,6 +303,146 @@ def test_Serial_graph_failure_rate(pool_zero):
     assert handle in dot.source
     assert label in dot.source
     assert str(0) in dot.source
+
+
+def test_Serial_graph_system_without_names():
+    
+    comp_zero = Component("zero")
+    comp_zero.set_failure_rate(2)
+    
+    comp_one = Component("one")
+    comp_one.set_failure_rate(2)
+    
+    comp_two = Component("two")
+    comp_two.set_failure_rate(2)
+    
+    serial = Serial()
+    serial.add_item(0)
+    
+    parallel = Parallel()
+    parallel.add_item(1)
+    parallel.add_item(2)
+    
+    pool = {0: comp_zero,
+            1: comp_one,
+            2: comp_two,
+            3: serial,
+            4: parallel}
+    
+    test = Serial()
+    test.add_item(3)
+    test.add_item(4)
+    dot = gv.Digraph()
+    handle = test.graph(pool, dot)
+    
+    assert handle in dot.source
+    assert "zero" in dot.source
+    assert "two" in dot.source
+
+
+def test_Serial_graph_system_two_levels():
+    
+    comp_zero = Component("zero")
+    comp_zero.set_failure_rate(2)
+    
+    comp_one = Component("one")
+    comp_one.set_failure_rate(2)
+    
+    comp_two = Component("two")
+    comp_two.set_failure_rate(2)
+    
+    serial = Serial("name")
+    serial_two = Serial("name")
+    serial_two.add_item(0)
+    serial_two.add_item(1)
+    
+    parallel = Parallel("name")
+    parallel.add_item(2)
+    parallel.add_item(3)
+    
+    pool = {0: comp_zero,
+            1: comp_one,
+            2: comp_two,
+            3: serial_two,
+            4: serial,
+            5: parallel}
+    
+    test = Serial("top")
+    test.add_item(4)
+    test.add_item(5)
+    dot = gv.Digraph()
+    handle = test.graph(pool, dot, levels=2)
+    
+    assert handle in dot.source
+    assert "two" in dot.source
+
+
+def test_Serial_graph_system_with_names():
+    
+    comp_zero = Component("zero")
+    comp_zero.set_failure_rate(2)
+    
+    comp_one = Component("one")
+    comp_one.set_failure_rate(2)
+    
+    comp_two = Component("two")
+    comp_two.set_failure_rate(2)
+    
+    serial = Serial("serial")
+    serial.add_item(0)
+    
+    parallel = Parallel("parallel")
+    parallel.add_item(1)
+    parallel.add_item(2)
+    
+    pool = {0: comp_zero,
+            1: comp_one,
+            2: comp_two,
+            3: serial,
+            4: parallel}
+    
+    test = Serial()
+    test.add_item(3)
+    test.add_item(4)
+    dot = gv.Digraph()
+    handle = test.graph(pool, dot)
+    
+    assert handle in dot.source
+    assert "serial" in dot.source
+    assert "parallel" in dot.source
+
+
+def test_Serial_graph_system_extra_level():
+    
+    comp_zero = Component("zero")
+    comp_zero.set_failure_rate(2)
+    
+    comp_one = Component("one")
+    comp_one.set_failure_rate(2)
+    
+    comp_two = Component("two")
+    comp_two.set_failure_rate(2)
+    
+    parallel_two = Parallel("name")
+    parallel_two.add_item(0)
+    parallel_two.add_item(1)
+    
+    parallel = Parallel()
+    parallel.add_item(2)
+    parallel.add_item(3)
+    
+    pool = {0: comp_zero,
+            1: comp_one,
+            2: comp_two,
+            3: parallel_two,
+            4: parallel}
+
+    test = Serial("top")
+    test.add_item(4)
+    dot = gv.Digraph()
+    test.graph(pool, dot)
+    
+    assert "name" in dot.source
 
 
 def test_Serial_str():
@@ -338,6 +510,46 @@ def test_Parallel_display_none(pool_dummy):
     assert test.display(pool_dummy) == "<test:>"
 
 
+def test_Parallel_display_failure_rate(pool):
+    test = Parallel("test")
+    test.add_item(0)
+    assert test.display(pool) == "<test: 2.000000e-06: 'zero: 2.000000e-06'>"
+
+
+def test_Parallel_graph_complex(pool):
+    
+    comp_zero = Component("zero")
+    comp_zero.set_failure_rate(2)
+    
+    comp_one = Component("one")
+    comp_one.set_failure_rate(2)
+    
+    comp_two = Component("two")
+    comp_two.set_failure_rate(2)
+    
+    serial = Serial("name")
+    serial.add_item(0)
+    
+    parallel = Parallel()
+    parallel.add_item(1)
+    parallel.add_item(2)
+    
+    pool = {0: comp_zero,
+            1: comp_one,
+            2: comp_two,
+            3: serial,
+            4: parallel}
+    
+    test = Parallel("top")
+    test.add_item(3)
+    test.add_item(4)
+    dot = gv.Digraph()
+    dot.attr(rankdir='LR')
+    handle = test.graph(pool, dot, levels=2)
+    
+    assert handle in dot.source
+
+
 @pytest.mark.parametrize("label, expected", [
     ('test', 1),
     ('other', 0),
@@ -352,6 +564,14 @@ def test_Parallel_get_probability_proportion(pool):
     test.add_item(0)
     test.add_item(1)
     assert test.get_probability_proportion(pool, "zero") == 0.5
+
+
+def test_Parallel_get_probability_proportion_serial(pool_serial):
+    test = Parallel("test")
+    test.add_item(0)
+    test.add_item(1)
+    result = test.get_probability_proportion(pool_serial, "zero")
+    assert np.isclose(result, 1. / 3)
 
 
 def test_Parallel_graph_no_failure_rate(pool_dummy):

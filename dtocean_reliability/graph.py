@@ -128,41 +128,6 @@ class ReliabilityBase(object):
         raise RuntimeError("No unique node name found")
 
 
-class ReliabilityWrapper(ReliabilityBase):
-    
-    def __init__(self, pool, key):
-        ReliabilityBase.__init__(self)
-        self._pool = pool
-        self._link = self._pool[key]
-    
-    def get_failure_rate(self):
-        return self._link.get_failure_rate(self._pool)
-    
-    def get_mttf(self):
-        return self._link.get_mttf(self._pool)
-    
-    def get_rpn(self, pool):
-        return self._link.get_rpn(self._pool)
-    
-    def get_reliability(self, time_hours):
-        return self._link.get_reliability(self._pool, time_hours)
-    
-    def get_probability_proportion(self, label):
-        return self._link.get_probability_proportion(self._pool, label)
-    
-    def reset(self):
-        raise NotImplementedError("Reset has no effect on ReliabilityWrapper")
-    
-    def display(self):
-         return self._link.display(self._pool)
-     
-    def __len__(self):
-        return len(self._link)
-    
-    def __str__(self):
-        return self._link.__str__()
-
-
 class Component(ReliabilityBase):
     
     def __init__(self, label, kfactor=None):
@@ -208,7 +173,11 @@ class Component(ReliabilityBase):
         else:
             return "'{}'".format(self.label)
     
-    def graph(self, pool, dot, levels=None, label=None):
+    def graph(self, pool,
+                    dot,
+                    levels=None,
+                    label=None,
+                    force_horizontal=False):
         
         handle = self.get_node_name()
         failure_rate = self.get_failure_rate(pool)
@@ -307,13 +276,14 @@ class Serial(Link, ReliabilityBase):
             else:
                 out += "{}: ".format(self.label)
             nllen += len(out)
+        
         for item in self._items:
             link = pool[item]
             out += "{} ".format(link.display(pool, nllen)) + "\n" + " " * nllen
         
         out = out.strip()
         out += "]"
-            
+        
         return out
     
     def graph(self, pool, dot, levels=1, label=None, force_horizontal=False):
@@ -365,7 +335,10 @@ class Serial(Link, ReliabilityBase):
                 
                 link = pool[item]
                 
-                check_handle = link.graph(pool, s, levels, item)
+                check_handle = link.graph(pool,
+                                          s,
+                                          levels,
+                                          item)
                 
                 if last_handle is not None and check_handle is not None:
                     
@@ -416,8 +389,6 @@ class Parallel(Link, ReliabilityBase):
         
         if not failure_rates:
             return None
-        
-        print failure_rates
         
         return binomial(failure_rates)
     
@@ -483,7 +454,7 @@ class Parallel(Link, ReliabilityBase):
         
         return out
     
-    def graph(self, pool, dot, levels=1, label=None):
+    def graph(self, pool, dot, levels=1, label=None, force_horizontal=False):
         
         out_handle = self.get_node_name()
         
@@ -543,6 +514,41 @@ class Parallel(Link, ReliabilityBase):
     def __str__(self):
         out = "Parallel: {}".format(Link.__str__(self))
         return out
+
+
+class ReliabilityWrapper(ReliabilityBase):
+    
+    def __init__(self, pool, key):
+        ReliabilityBase.__init__(self)
+        self._pool = pool
+        self._link = self._pool[key]
+    
+    def get_failure_rate(self):
+        return self._link.get_failure_rate(self._pool)
+    
+    def get_mttf(self):
+        return self._link.get_mttf(self._pool)
+    
+    def get_rpn(self, pool):
+        return self._link.get_rpn(self._pool)
+    
+    def get_reliability(self, time_hours):
+        return self._link.get_reliability(self._pool, time_hours)
+    
+    def get_probability_proportion(self, label):
+        return self._link.get_probability_proportion(self._pool, label)
+    
+    def reset(self):
+        raise NotImplementedError("Reset has no effect on ReliabilityWrapper")
+    
+    def display(self):
+         return self._link.display(self._pool)
+     
+    def __len__(self):
+        return len(self._link)
+    
+    def __str__(self):
+        return self._link.__str__()
 
 
 def find_all_labels(label,
