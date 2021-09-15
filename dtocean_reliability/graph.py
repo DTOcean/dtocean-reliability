@@ -529,7 +529,7 @@ class ReliabilityWrapper(ReliabilityBase):
     def get_mttf(self):
         return self._link.get_mttf(self._pool)
     
-    def get_rpn(self, pool):
+    def get_rpn(self):
         return self._link.get_rpn(self._pool)
     
     def get_reliability(self, time_hours):
@@ -555,8 +555,7 @@ def find_all_labels(label,
                     pool,
                     partial_match=False,
                     filter_label=None,
-                    return_one=False,
-                    return_shortest=False):
+                    return_one=False):
     
     all_labels = []
     all_indexes = []
@@ -589,19 +588,6 @@ def find_all_labels(label,
             raise RuntimeError(err_str)
         
         return all_labels[0], all_indexes[0]
-    
-    if return_shortest:
-        
-        minimum = min(all_labels)
-        indices = [i for i, v in enumerate(all_labels) if v == minimum]
-        
-        if len(indices) > 1:
-            err_str = "No unique shortest path was found"
-            raise RuntimeError(err_str)
-        
-        min_idx = indices[0]
-        
-        return all_labels[min_idx], all_indexes[min_idx]
     
     if not all_labels:
         return None, None

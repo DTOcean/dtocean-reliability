@@ -21,7 +21,12 @@ import pytest
 import numpy as np
 import graphviz as gv
 
-from dtocean_reliability.graph import Link, Component, Serial, Parallel
+from dtocean_reliability.graph import (Link,
+                                       Component,
+                                       Serial,
+                                       Parallel,
+                                       ReliabilityWrapper,
+                                       find_all_labels)
 
 
 @pytest.fixture
@@ -83,6 +88,30 @@ def pool_serial():
     return pool
 
 
+@pytest.fixture
+def pool_array():
+    
+    comp_one = Component("one")
+    comp_two = Component("two")
+    comp_another = Component("another one")
+    
+    serial = Serial()
+    serial.add_item(1)
+    serial.add_item(2)
+    serial.add_item(3)
+    
+    pool = {"array": serial,
+            1: comp_one,
+            2: comp_two,
+            3: comp_another}
+    
+    return pool
+
+
+@pytest.fixture
+def wrapper(pool_serial):
+    return ReliabilityWrapper(pool_serial, 1)
+
 
 def test_Link_len():
     
@@ -143,6 +172,15 @@ def test_Component_get_reliability(pool_dummy):
     assert test.get_reliability(pool_dummy, 1) == 1
 
 
+@pytest.mark.parametrize("label, expected", [
+    ('test', 1),
+    ('other', 0),
+])
+def test_Component_get_probability_proportion(pool_dummy, label, expected):
+    test = Component("test")
+    assert test.get_probability_proportion(pool_dummy, label) == expected
+
+
 def test_Component_reset(pool_dummy):
     test = Component("test")
     test.set_failure_rate(2)
@@ -153,15 +191,6 @@ def test_Component_reset(pool_dummy):
 def test_Component_display_none(pool_dummy):
     test = Component("test")
     assert test.display(pool_dummy) == "'test'"
-
-
-@pytest.mark.parametrize("label, expected", [
-    ('test', 1),
-    ('other', 0),
-])
-def test_Component_get_probability_proportion(pool_dummy, label, expected):
-    test = Component("test")
-    assert test.get_probability_proportion(pool_dummy, label) == expected
 
 
 def test_Component_graph_no_failure_rate(pool_dummy):
@@ -242,19 +271,6 @@ def test_Serial_get_reliability(pool_zero):
     assert test.get_reliability(pool_zero, 1) == 1
 
 
-def test_Serial_reset(pool):
-    test = Serial("test")
-    test.add_item(0)
-    test.add_item(1)
-    test.reset(pool)
-    assert test.get_failure_rate(pool) is None
-
-
-def test_Serial_display_none(pool_dummy):
-    test = Serial("test")
-    assert test.display(pool_dummy) == "[test:]"
-
-
 @pytest.mark.parametrize("label, expected", [
     ('test', 1),
     ('other', 0),
@@ -277,6 +293,19 @@ def test_Serial_get_probability_proportion_serial(pool_serial):
     test.add_item(1)
     result = test.get_probability_proportion(pool_serial, "zero")
     assert np.isclose(result, 1. / 3)
+
+
+def test_Serial_reset(pool):
+    test = Serial("test")
+    test.add_item(0)
+    test.add_item(1)
+    test.reset(pool)
+    assert test.get_failure_rate(pool) is None
+
+
+def test_Serial_display_none(pool_dummy):
+    test = Serial("test")
+    assert test.display(pool_dummy) == "[test:]"
 
 
 def test_Serial_graph_no_failure_rate(pool_dummy):
@@ -497,6 +526,30 @@ def test_Parallel_get_reliability(pool):
     assert test.get_reliability(pool, 1) == math.exp(-4 / 3e6)
 
 
+@pytest.mark.parametrize("label, expected", [
+    ('test', 1),
+    ('other', 0),
+])
+def test_Parallel_get_probability_proportion_empty(pool_dummy, label, expected):
+    test = Parallel("test")
+    assert test.get_probability_proportion(pool_dummy, label) == expected
+
+
+def test_Parallel_get_probability_proportion(pool):
+    test = Parallel("test")
+    test.add_item(0)
+    test.add_item(1)
+    assert test.get_probability_proportion(pool, "zero") == 0.5
+
+
+def test_Parallel_get_probability_proportion_serial(pool_serial):
+    test = Parallel("test")
+    test.add_item(0)
+    test.add_item(1)
+    result = test.get_probability_proportion(pool_serial, "zero")
+    assert np.isclose(result, 1. / 3)
+
+
 def test_Parallel_reset(pool):
     test = Parallel("test")
     test.add_item(0)
@@ -550,30 +603,6 @@ def test_Parallel_graph_complex(pool):
     assert handle in dot.source
 
 
-@pytest.mark.parametrize("label, expected", [
-    ('test', 1),
-    ('other', 0),
-])
-def test_Parallel_get_probability_proportion_empty(pool_dummy, label, expected):
-    test = Parallel("test")
-    assert test.get_probability_proportion(pool_dummy, label) == expected
-
-
-def test_Parallel_get_probability_proportion(pool):
-    test = Parallel("test")
-    test.add_item(0)
-    test.add_item(1)
-    assert test.get_probability_proportion(pool, "zero") == 0.5
-
-
-def test_Parallel_get_probability_proportion_serial(pool_serial):
-    test = Parallel("test")
-    test.add_item(0)
-    test.add_item(1)
-    result = test.get_probability_proportion(pool_serial, "zero")
-    assert np.isclose(result, 1. / 3)
-
-
 def test_Parallel_graph_no_failure_rate(pool_dummy):
     
     label = "test"
@@ -585,22 +614,66 @@ def test_Parallel_graph_no_failure_rate(pool_dummy):
     assert label in dot.source
 
 
-#def test_Parallel_graph_failure_rate(pool_zero):
-#    
-#    label = "test"
-#    
-#    test = Parallel(label)
-#    test.add_item(0)
-#    test.add_item(1)
-#    dot = gv.Digraph()
-#    handle = test.graph(pool_zero, dot)
-#    
-#    assert handle in dot.source
-#    assert label in dot.source
-#    assert str(0) in dot.source
-
-
 def test_Parallel_str():
     label = "test"
     test = Parallel(label)
     assert label in str(test)
+
+
+def test_ReliabilityWrapper_get_failure_rate(wrapper):
+    assert wrapper.get_failure_rate() == 4e-06
+
+
+def test_ReliabilityWrapper_get_mttf(wrapper):
+    assert wrapper.get_mttf() == 1 / 4e-06
+
+
+def test_ReliabilityWrapper_get_rpn_none(wrapper):
+    assert wrapper.get_rpn() == 6
+
+
+def test_ReliabilityWrapper_get_reliability(wrapper):
+    assert wrapper.get_reliability(1) == math.exp(-4e-06)
+
+
+@pytest.mark.parametrize("label, expected", [
+    ('one', 0.5),
+    ('other', 0),
+])
+def test_ReliabilityWrapper_get_probability_proportion(wrapper, label, expected):
+    assert wrapper.get_probability_proportion(label) == expected
+
+
+def test_ReliabilityWrapper_reset(wrapper):
+    with pytest.raises(NotImplementedError):
+        wrapper.reset()
+
+
+def test_ReliabilityWrapper_display_none(wrapper):
+    test = wrapper.display()
+    assert ('one' in test and 'two' in test)
+
+
+def test_ReliabilityWrapper_str(wrapper):
+    assert 'Serial' in str(wrapper)
+
+
+def test_ReliabilityWrapper_len(wrapper):
+    assert len(wrapper) == 2
+
+
+def test_find_all_label_return_one_but_none(pool_array):
+    
+    with pytest.raises(RuntimeError) as excinfo:
+        find_all_labels("three", pool_array, return_one=True)
+    
+    assert "but none found" in str(excinfo.value)
+
+
+def test_find_all_label_return_one_but_two(pool_array):
+    
+    with pytest.raises(RuntimeError) as excinfo:
+        find_all_labels("one", pool_array, partial_match=True, return_one=True)
+    
+    assert "but 2 found" in str(excinfo.value)
+
