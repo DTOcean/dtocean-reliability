@@ -52,6 +52,10 @@ class MarkedSystem(object):
         self.ids = ids
         self.markers = markers
     
+    def __nonzero__(self):
+        if self.ids: return True
+        return False
+    
     def __str__(self):
         return str(zip(self.ids, self.markers))
     
@@ -64,7 +68,7 @@ def slugify(s):
     # Remove all non-word characters (everything except numbers and letters)
     s = re.sub(r"[^\w\s]", '', s)
     
-    # Replace all runs of whitespace with a single dash
+    # Replace all runs of whitespace with a single underscore
     s = re.sub(r"\s+", '_', s)
     
     return str(s)
@@ -91,6 +95,8 @@ def check_nodes(*networks):
 def mark_networks(*networks):
     
     def get_dummy_markers(comps):
+        
+        if not comps: return comps
         
         if hasattr(comps[0], '__iter__'):
             return [[-1] * len(x) for x in comps]
@@ -320,10 +326,6 @@ def combine_networks(electrical_network,
                     sk_data = OrderedDict()
                     sk_data["Moorings lines"] = MarkedSystem([lid], [lmarker])
                     
-                    if systems['Foundation'].ids == ['dummy']:
-                        systems['Station keeping'].append(sk_data)
-                        continue
-                    
                     fid = systems['Foundation'].ids[i]
                     fmarker = systems['Foundation'].markers[i]
                     
@@ -442,15 +444,6 @@ def _build_pool_layouts(nodes,
         nodes = nodes[0]
     
     for item in nodes:
-        
-        if isinstance(item, list):
-            
-            new_serial = Serial()
-            _build_pool_layouts(item, new_serial, pool)
-            
-            next_pool_key = len(pool)
-            pool[next_pool_key] = new_serial
-            parent_link.add_item(next_pool_key)
         
         if "subhub" in item:
             
@@ -587,26 +580,11 @@ def _build_pool_comps(marked_system, parent_link, pool):
     
     for idx, item in enumerate(comps):
         
-        if isinstance(item, list):
-            
-            new_serial = Serial()
-            
-            marker = markers[idx]
-            item = MarkedSystem([item], [marker])
-            
-            _build_pool_comps(item, new_serial, pool)
-            
-            next_pool_key = len(pool)
-            pool[next_pool_key] = new_serial
-            parent_link.add_item(next_pool_key)
-            
-        else:
-            
-            marker = markers[idx]
-            next_pool_key = len(pool)
-            new_component = Component(item, marker)
-            pool[next_pool_key] = new_component
-            parent_link.add_item(next_pool_key)
+        marker = markers[idx]
+        next_pool_key = len(pool)
+        new_component = Component(item, marker)
+        pool[next_pool_key] = new_component
+        parent_link.add_item(next_pool_key)
     
     return
 

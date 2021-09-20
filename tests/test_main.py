@@ -117,6 +117,18 @@ def test_network_set_failure_rates_severitylevel(database,
     assert np.isclose(test['lambda'][0], expected)
 
 
+def test_network_set_failure_rates_k_factors(database,
+                                             electrical_network):
+    
+    k_factors = {0: 2, 1: 2}
+    
+    network = Network(database, electrical_network)
+    network.set_failure_rates(k_factors=k_factors, inplace=True)
+    
+    test = network.get_systems_metrics()
+    assert np.isclose(test['lambda'][0], 25 / 1e6)
+
+
 def test_network_set_failure_rates_severitylevel_unknown(database,
                                                          electrical_network):
     
