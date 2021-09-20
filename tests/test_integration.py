@@ -218,11 +218,11 @@ def test_moorings_user():
     dummymoorhier = eval(open(os.path.join(DATA_DIR,
                                            'dummymoorhier_noelec.txt')).read())
     dummymoorbom = eval(open(os.path.join(DATA_DIR,
-                                          'dummymoorbom.txt')).read())
+                                          'dummymoorbom_noelec.txt')).read())
     dummyuserhier = eval(open(os.path.join(DATA_DIR,
                                            'dummyuserhier.txt')).read())
     dummyuserbom = eval(open(os.path.join(DATA_DIR,
-                                          'dummymoorbom_noelec.txt')).read())
+                                          'dummyuserbom.txt')).read())
     
     electrical_network = None
     moorings_network = SubNetwork(dummymoorhier, dummymoorbom)

@@ -130,10 +130,10 @@ class ReliabilityBase(object):
 
 class Component(ReliabilityBase):
     
-    def __init__(self, label, kfactor=None):
+    def __init__(self, label, marker=-1):
         ReliabilityBase.__init__(self)
         self.label = label
-        self.kfactor = kfactor
+        self.marker = marker
         self._failure_rate = None
     
     def set_failure_rate(self, failure_rate):
@@ -193,8 +193,8 @@ class Component(ReliabilityBase):
     
     def __str__(self):
         out = "Component: '{}'".format(self.label)
-        if self.kfactor is not None:
-            out +="; k-factor: '{}'".format(self.kfactor)
+        if self.marker != -1:
+            out +="; marker: '{}'".format(self.marker)
         return out
 
 

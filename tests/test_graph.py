@@ -225,11 +225,11 @@ def test_Component_str():
     assert label in str(test)
 
 
-def test_Component_str_kfactor():
-    kfactor = 1
-    test = Component("test", kfactor=kfactor)
-    assert "k-factor" in str(test)
-    assert str(kfactor) in str(test)
+def test_Component_str_marker():
+    marker = 1
+    test = Component("test", marker=marker)
+    assert "marker" in str(test)
+    assert str(marker) in str(test)
 
 
 def test_Serial_init():

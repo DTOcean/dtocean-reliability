@@ -47,8 +47,7 @@ class Network(object):
     def __init__(self, database,
                        electrical_network = None,
                        moorings_network = None,
-                       user_network = None,
-                       electrical_data = None):
+                       user_network = None):
         
         if (electrical_network is None and
             moorings_network is None and
@@ -68,8 +67,7 @@ class Network(object):
         (array_hierarcy,
          device_hierachy) = combine_networks(electrical_network,
                                              moorings_network,
-                                             user_network,
-                                             electrical_data)
+                                             user_network)
         
         self._db = database
         self._pool = build_pool(array_hierarcy, device_hierachy)
@@ -80,7 +78,7 @@ class Network(object):
     
     def set_failure_rates(self, severitylevel='critical',
                                 calcscenario='mean',
-                                use_kfactors=False,
+                                k_factors=None,
                                 inplace=False):
         
         if inplace:
@@ -93,7 +91,7 @@ class Network(object):
                                      network._db,
                                      severitylevel,
                                      calcscenario,
-                                     use_kfactors=use_kfactors)
+                                     k_factors=k_factors)
         
         if inplace:
             result = None
@@ -320,11 +318,11 @@ def _get_curtailments(pool):
     return curtailments
 
 
-def _set_component_failure_rates (pool,
-                                  dbdict,
-                                  severitylevel,
-                                  calcscenario,
-                                  use_kfactors=False):
+def _set_component_failure_rates(pool,
+                                 dbdict,
+                                 severitylevel,
+                                 calcscenario,
+                                 k_factors=None):
     
     # For components with an id number look up respective failure rates 
     # otherwise for designed components (i.e. shallow/gravity foundations, 
@@ -337,10 +335,12 @@ def _set_component_failure_rates (pool,
     #    defaults to mean value
     #  * If no non-critical failure rate data is available use critical values
     
-    def set_failure_rate(item, failure_rate, severitylevel, use_kfactors):
+    def set_failure_rate(item, failure_rate, severitylevel, k_factors=None):
         
-        if use_kfactors and item.kfactor is not None:
-            failure_rate *= item.kfactor
+        item.set_severity_level(severitylevel)
+        
+        if k_factors is not None and item.marker in k_factors:
+            failure_rate *= k_factors[item.marker]
         
         item.set_failure_rate(failure_rate)
         
@@ -387,12 +387,12 @@ def _set_component_failure_rates (pool,
     
     for item in pool.values():
         
-        item.set_severity_level(severitylevel)
-        
         if not isinstance(item, Component):
+            item.set_severity_level(severitylevel)
             continue
         
         if item.label in designed_comps:
+            item.set_severity_level(severitylevel)
             item.set_failure_rate(10. / 876)
             continue
         
@@ -401,12 +401,12 @@ def _set_component_failure_rates (pool,
         
         if severity_failure_rates[cs] > 0.0:
             failure_rate = severity_failure_rates[cs]
-            set_failure_rate(item, failure_rate, severitylevel, use_kfactors)
+            set_failure_rate(item, failure_rate, severitylevel, k_factors)
             continue
         
         if severity_failure_rates[mean_idx] > 0.0:
             failure_rate = severity_failure_rates[mean_idx]
-            set_failure_rate(item, failure_rate, severitylevel, use_kfactors)
+            set_failure_rate(item, failure_rate, severitylevel, k_factors)
             continue
         
         other_failure_rates = dbitem[other_key]
@@ -417,7 +417,7 @@ def _set_component_failure_rates (pool,
             set_failure_rate(item,
                              failure_rate,
                              other_severitylevel,
-                             use_kfactors)
+                             k_factors)
             
             continue
         
@@ -427,7 +427,7 @@ def _set_component_failure_rates (pool,
             set_failure_rate(item,
                              failure_rate,
                              other_severitylevel,
-                             use_kfactors)
+                             k_factors)
             
             continue
         

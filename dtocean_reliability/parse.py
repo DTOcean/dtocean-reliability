@@ -46,14 +46,14 @@ class SubNetwork(object):
         return
 
 
-class KSystem(object):
+class MarkedSystem(object):
     
-    def __init__(self, ids, kfactors):
+    def __init__(self, ids, markers):
         self.ids = ids
-        self.kfactors = kfactors
+        self.markers = markers
     
     def __str__(self):
-        return str(zip(self.ids, self.kfactors))
+        return str(zip(self.ids, self.markers))
     
     def __repr__(self):
         return self.__str__()
@@ -86,6 +86,42 @@ def check_nodes(*networks):
         raise ValueError(err_msg)
     
     return
+
+
+def mark_networks(*networks):
+    
+    def get_dummy_markers(comps):
+        
+        if hasattr(comps[0], '__iter__'):
+            return [[-1] * len(x) for x in comps]
+        else:
+            return [-1] * len(comps)
+    
+    for network in networks:
+    
+        marked_hierarchy = deepcopy(network.hierarchy)
+        
+        for node, systems in network.hierarchy.iteritems():
+            
+            for system in systems:
+                
+                if system == 'layout': continue
+                
+                if system == 'Elec sub-system' and 'device' in node:
+                    data = network.bill_of_materials[node]
+                else:
+                    data = network.bill_of_materials[node][system]
+                
+                comps = network.hierarchy[node][system]
+                
+                if 'marker' not in data:
+                    markers = get_dummy_markers(comps)
+                else:
+                    markers = data['marker']
+                    
+                marked_hierarchy[node][system] = MarkedSystem(comps, markers)
+        
+        network.hierarchy = marked_hierarchy
 
 
 def complete_networks(electrical_network,
@@ -242,8 +278,7 @@ def complete_networks(electrical_network,
 
 def combine_networks(electrical_network,
                      moorings_network,
-                     user_network,
-                     electrical_data=None):
+                     user_network):
     
     # Read in sub-system networks and consolidate into device- and array-level 
     # networks
@@ -251,21 +286,14 @@ def combine_networks(electrical_network,
                 moorings_network,
                 user_network)
     
-    # Create dictionary from electrical data
-    if electrical_data is not None:
-    
-        electrical_data_dict = {}
-        
-        for record in electrical_data:
-            electrical_data_dict[record.Marker] = record
-        
-        electrical_data = electrical_data_dict
+    # Store markers alongside component ids
+    mark_networks(electrical_network,
+                  moorings_network,
+                  user_network)
     
     dev_electrical_hierarchy = deepcopy(electrical_network.hierarchy)
     dev_moorings_hierarchy = deepcopy(moorings_network.hierarchy)
     dev_user_hierarchy = deepcopy(user_network.hierarchy)
-    
-    dev_electrical_bom = deepcopy(electrical_network.bill_of_materials)
     
     device_hierachy = {}
     array_hierarcy = {}
@@ -276,26 +304,30 @@ def combine_networks(electrical_network,
         
         if 'Mooring system' in systems and systems['Mooring system']:
             
-            if systems['Mooring system'] == ["dummy"]:
+            if systems['Mooring system'].ids == ["dummy"]:
                 
-                systems['Station keeping'] = ["dummy"]
+                systems['Station keeping'] = MarkedSystem(["dummy"], [-1])
                 
             else:
                 
                 systems['Station keeping'] = []
             
-                lines = deepcopy(systems['Mooring system']) 
+                lids = systems['Mooring system'].ids
+                lmarkers = systems['Mooring system'].markers
                 
-                for i, line in enumerate(lines):
+                for i, (lid, lmarker) in enumerate(zip(lids, lmarkers)):
                     
                     sk_data = OrderedDict()
-                    sk_data["Moorings lines"] = line
+                    sk_data["Moorings lines"] = MarkedSystem([lid], [lmarker])
                     
-                    if systems['Foundation'] == ['dummy']:
+                    if systems['Foundation'].ids == ['dummy']:
                         systems['Station keeping'].append(sk_data)
                         continue
                     
-                    sk_data["Foundation"] = systems['Foundation'][i]
+                    fid = systems['Foundation'].ids[i]
+                    fmarker = systems['Foundation'].markers[i]
+                    
+                    sk_data["Foundation"] = MarkedSystem([fid], [fmarker])
                     systems['Station keeping'].append(sk_data)
             
             del systems['Mooring system']
@@ -320,46 +352,13 @@ def combine_networks(electrical_network,
             array_hierarcy[node] = systems
             node_moorings = dev_moorings_hierarchy[node]
             substation_foundations = node_moorings['Substation foundation']
-
-            for substf in substation_foundations:
-                array_hierarcy[node]['Substation'].append(substf)
             
-            if "Export cable" in systems and electrical_data is not None:
-                
-                markers = dev_electrical_bom[node]["Export cable"]['marker']
-                kfactors = _get_cable_kfactors(markers,
-                                               electrical_data)
-                
-                assert len(markers) == len(kfactors)
-                
-                array_hierarcy[node]["Export cable"] = \
-                                 KSystem(array_hierarcy[node]["Export cable"],
-                                         kfactors)
-            
-            if "Elec sub-system" in systems and electrical_data is not None:
-                
-                markers = dev_electrical_bom[node]["Elec sub-system"]['marker']
-                kfactors = _get_cable_kfactors(markers,
-                                               electrical_data)
-                
-                assert len(markers) == len(kfactors)
-                
-                array_hierarcy[node]["Elec sub-system"] = \
-                            KSystem(array_hierarcy[node]["Elec sub-system"],
-                                    kfactors)
+            sids = substation_foundations.ids
+            smarkers = substation_foundations.markers
+            array_hierarcy[node]['Substation'].ids += sids
+            array_hierarcy[node]['Substation'].markers += smarkers
         
         elif node[0:6] == 'device':
-            
-            if electrical_data is not None:
-            
-                markers = dev_electrical_bom[node]['marker']
-                kfactors = _get_cable_kfactors(markers, electrical_data)
-                
-                assert len(markers) == len(kfactors)
-                
-                dev_electrical_hierarchy[node] = {'Elec sub-system': 
-                    KSystem(dev_electrical_hierarchy[node]['Elec sub-system'],
-                            kfactors)}
             
             device_hierachy[node] = {
                     'M&F sub-system': dev_moorings_hierarchy[node], 
@@ -393,18 +392,10 @@ def _build_pool_array(array_dict, array_link, pool):
     
     for system in array_systems:
         
-        if isinstance(array_dict[system], KSystem):
-            
-            array_system = array_dict[system]
-            new_ids, new_kfactors = _strip_dummy_k(array_system.ids,
-                                                   array_system.kfactors)
-            if new_ids is None: continue
-            comps = KSystem(new_ids, new_kfactors)
+        array_system = array_dict[system]
+        comps = _strip_dummy(array_system)
+        if comps is None: continue
         
-        else:
-            
-            comps = _strip_dummy(array_dict[system])
-            if comps is None: continue
         
         system_link = Serial(system)
         _build_pool_comps(comps, system_link, pool)
@@ -496,18 +487,9 @@ def _build_pool_subhub(subhub_dict,
     
     for system in subhub_systems:
         
-        if isinstance(subhub_dict[system], KSystem):
-            
-            subhub_system = subhub_dict[system]
-            new_ids, new_kfactors = _strip_dummy_k(subhub_system.ids,
-                                                   subhub_system.kfactors)
-            if new_ids is None: continue
-            comps = KSystem(new_ids, new_kfactors)
-        
-        else:
-            
-            comps = _strip_dummy(subhub_dict[system])
-            if comps is None: continue
+        subhub_system = subhub_dict[system]
+        comps = _strip_dummy(subhub_system)
+        if comps is None: continue
         
         system_link = Serial(system)
         _build_pool_comps(comps, system_link, pool)
@@ -536,7 +518,7 @@ def _build_pool_device(device_dict, parent_link, pool):
             
             _build_pool_device(system, system_link, temp_pool)
             
-        elif (not isinstance(system, KSystem) and
+        elif (not isinstance(system, MarkedSystem) and
               isinstance(system[0], dict)):
             
             new_parallel = Parallel()
@@ -556,18 +538,8 @@ def _build_pool_device(device_dict, parent_link, pool):
             
         else:
             
-            if isinstance(system, KSystem):
-                
-                new_ids, new_kfactors = _strip_dummy_k(system.ids,
-                                                       system.kfactors)
-                if new_ids is None: continue
-                comps = KSystem(new_ids, new_kfactors)
-            
-            else:
-            
-                comps = _strip_dummy(system)
-                if comps is None: continue
-            
+            comps = _strip_dummy(system)
+            if comps is None: continue
             _build_pool_comps(comps, system_link, temp_pool)
         
         if len(temp_pool) - len(pool) == 0:
@@ -581,13 +553,10 @@ def _build_pool_device(device_dict, parent_link, pool):
     return
 
 
-def _build_pool_comps(comps, parent_link, pool):
+def _build_pool_comps(marked_system, parent_link, pool):
     
-    kfactors = None
-    
-    if isinstance(comps, KSystem):
-        kfactors = comps.kfactors
-        comps = comps.ids
+    comps = marked_system.ids
+    markers = marked_system.markers
     
     n_list = len([True for x in comps if isinstance(x, list)])
     
@@ -604,9 +573,8 @@ def _build_pool_comps(comps, parent_link, pool):
             new_serial = Serial()
             pool[next_pool_key] = new_serial
             
-            if kfactors is not None:
-                kfactor = kfactors[idx]
-                item = KSystem(item, kfactor)
+            marker = markers[idx]
+            item = MarkedSystem([item], [marker])
             
             _build_pool_comps(item, new_serial, pool)
             new_parallel.add_item(next_pool_key)
@@ -615,7 +583,7 @@ def _build_pool_comps(comps, parent_link, pool):
     
     elif n_list == 1:
         comps = comps[0]
-        if kfactors is not None: kfactors = kfactors[0]
+        markers = markers[0]
     
     for idx, item in enumerate(comps):
         
@@ -623,9 +591,8 @@ def _build_pool_comps(comps, parent_link, pool):
             
             new_serial = Serial()
             
-            if kfactors is not None:
-                kfactor = kfactors[idx]
-                item = KSystem(item, kfactor)
+            marker = markers[idx]
+            item = MarkedSystem([item], [marker])
             
             _build_pool_comps(item, new_serial, pool)
             
@@ -635,91 +602,44 @@ def _build_pool_comps(comps, parent_link, pool):
             
         else:
             
-            if kfactors is None:
-                kfactor = None
-            else:
-                kfactor = kfactors[idx]
-            
+            marker = markers[idx]
             next_pool_key = len(pool)
-            new_component = Component(item, kfactor)
+            new_component = Component(item, marker)
             pool[next_pool_key] = new_component
             parent_link.add_item(next_pool_key)
     
     return
 
 
-def _strip_dummy(comps):
+def _strip_dummy(marked_system):
     
-    reduced = []
-    
-    for check in comps:
-    
-        if isinstance(check, basestring):
-            if check == "dummy":
-                reduced.append(None)
-            else:
-                reduced.append(check)
-        elif isinstance(check, list):
-            reduced.append(_strip_dummy(check))
-        else:
-            reduced.append(check)
-        
-    complist = [x for x in reduced if x is not None]
-    if not complist: complist = None
-    
-    return complist
-
-
-def _strip_dummy_k(compsids, kfactors):
+    compsids = marked_system.ids
+    markers = marked_system.markers
     
     reduced_ids = []
-    reduced_kfactors = []
+    reduced_markers = []
     
-    for compid, kfactor in zip(compsids, kfactors):
+    for compid, marker in zip(compsids, markers):
     
         if isinstance(compid, basestring):
             if compid == "dummy":
                 reduced_ids.append(None)
-                reduced_kfactors.append(None)
+                reduced_markers.append(None)
             else:
                 reduced_ids.append(compid)
-                reduced_kfactors.append(kfactor)
+                reduced_markers.append(marker)
         elif isinstance(compid, list):
-            new_compids, new_kfactors = _strip_dummy_k(compid, kfactor)
-            reduced_ids.append(new_compids)
-            reduced_kfactors.append(new_kfactors)
+            new_comps = _strip_dummy(MarkedSystem(compid, marker))
+            reduced_ids.append(new_comps.ids)
+            reduced_markers.append(new_comps.markers)
         else:
             reduced_ids.append(compid)
-            reduced_kfactors.append(kfactor)
+            reduced_markers.append(marker)
         
     idlist = [x for x in reduced_ids if x is not None]
-    kfactorlist = [x for x in reduced_kfactors if x is not None]
+    markerlist = [x for x in reduced_markers if x is not None]
     
-    if not idlist:
-        idlist = None
-        kfactorlist = None
+    if not idlist: return None
     
-    return idlist, kfactorlist
+    return MarkedSystem(idlist, markerlist)
 
-
-def _get_cable_kfactors(markers, data):
-    
-    m2km = lambda x: x / 1e3 
-    kfactors = []
-    
-    for item in markers:
-        
-        if isinstance(item, list):
-            kfactors.append(_get_cable_kfactors(item, data))
-            continue
-        
-        item_data = data[item]
-        
-        if getattr(item_data, "Installation_Type") in ["array", "export"]:
-            kfactor = m2km(getattr(item_data, "Quantity"))
-        else:
-            kfactor = 1
-        
-        kfactors.append(kfactor)
-    
-    return kfactors

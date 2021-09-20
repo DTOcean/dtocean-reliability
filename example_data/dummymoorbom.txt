@@ -1,5 +1,5 @@
-{'array': {'Substation foundation': {'quantity': Counter({'id9': 1})},
-                                     'marker': [94]},
+{'array': {'Substation foundation': {'quantity': Counter({'id9': 1}),
+                                     'marker': [94]}},
 'subhub001': {'Substation foundation': {'quantity': Counter({'id9': 1}),
                                         'marker': [95]}},
 'subhub002': {'Substation foundation': {'quantity': Counter({'id9': 1}),
