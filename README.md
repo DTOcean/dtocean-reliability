@@ -1,6 +1,6 @@
 [![appveyor](https://ci.appveyor.com/api/projects/status/github/DTOcean/dtocean-reliability?branch=master&svg=true)](https://ci.appveyor.com/project/DTOcean/dtocean-reliability)
 [![codecov](https://codecov.io/gh/DTOcean/dtocean-reliability/branch/master/graph/badge.svg)](https://codecov.io/gh/DTOcean/dtocean-reliability)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/3bc087b5705e45d1b17e86668f1a67ff)](https://www.codacy.com/project/H0R5E/dtocean-reliability/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=DTOcean/dtocean-reliability&amp;utm_campaign=Badge_Grade_Dashboard&amp;branchId=11738730)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/58eca2c9496347c6b5aaf2e5c7aff50f)](https://www.codacy.com/gh/DTOcean/dtocean-reliability/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=DTOcean/dtocean-reliability&amp;utm_campaign=Badge_Grade)
 [![release](https://img.shields.io/github/release/DTOcean/dtocean-reliability.svg)](https://github.com/DTOcean/dtocean-reliability/releases/latest)
 
 # DTOcean Reliability Module
@@ -20,7 +20,7 @@ See [dtocean-app](https://github.com/DTOcean/dtocean-app) or [dtocean-core](
 https://github.com/DTOcean/dtocean-app) to use this package within the DTOcean
 ecosystem.
 
-* For python 2.7 only.
+\* For python 2.7 only.
 
 ## Installation
 
@@ -148,9 +148,9 @@ Please make sure to update tests as appropriate.
 This package was initially created as part of the [EU DTOcean project](
 https://www.dtoceanplus.eu/About-DTOceanPlus/History) by:
 
- * Sam Weller at [the University of Exeter](https://www.exeter.ac.uk/)
- * Jon Hardwick at [the University of Exeter](https://www.exeter.ac.uk/)
- * Mathew Topper at [TECNALIA](https://www.tecnalia.com)
+*   Sam Weller at [the University of Exeter](https://www.exeter.ac.uk/)
+*   Jon Hardwick at [the University of Exeter](https://www.exeter.ac.uk/)
+*   Mathew Topper at [TECNALIA](https://www.tecnalia.com)
 
 It is now maintained by Mathew Topper at [Data Only Greater](
 https://www.dataonlygreater.com/).
