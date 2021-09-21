@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#    Copyright (C) 2016 Sam Weller, Jon Hardwick
-#    Copyright (C) 2017-2021 Mathew Topper
+#    Copyright (C) 2021 Mathew Topper
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -23,14 +22,6 @@ from collections import Counter # pylint: disable=unused-import
 
 from dtocean_reliability import start_logging, Network, SubNetwork
 
-try:
-    import pandas as pd
-    pd.set_option('display.max_columns', None)
-    HAS_PANDAS = True
-except ImportError:
-    import pprint
-    HAS_PANDAS = False
-
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 DATA_DIR = os.path.join(THIS_DIR, "..", "example_data")
 
@@ -38,14 +29,27 @@ DATA_DIR = os.path.join(THIS_DIR, "..", "example_data")
 def main():
     
     dummydb = eval(open(os.path.join(DATA_DIR, 'dummydb.txt')).read())
+    dummyelechier = eval(open(os.path.join(DATA_DIR,
+                                           'dummyelechier.txt')).read())
+    dummyelecbom = eval(open(os.path.join(DATA_DIR,
+                                          'dummyelecbom.txt')).read())
     dummymoorhier = eval(open(os.path.join(DATA_DIR,
-                                           'dummymoorhier_noelec.txt')).read())
+                                           'dummymoorhier.txt')).read())
     dummymoorbom = eval(open(os.path.join(DATA_DIR,
-                                          'dummymoorbom_noelec.txt')).read())
+                                          'dummymoorbom.txt')).read())
+    dummyuserhier = eval(open(os.path.join(DATA_DIR,
+                                           'dummyuserhier.txt')).read())
+    dummyuserbom = eval(open(os.path.join(DATA_DIR,
+                                          'dummyuserbom.txt')).read())
     
-    electrical_network = None
+    electrical_network = SubNetwork(dummyelechier, dummyelecbom)
     moorings_network = SubNetwork(dummymoorhier, dummymoorbom)
-    user_network = None
+    user_network = SubNetwork(dummyuserhier, dummyuserbom)
+    
+    k_factors = {12: 2,
+                 13: 2,
+                 14: 2,
+                 15: 2}
     
     network = Network(dummydb,
                       electrical_network,
@@ -53,29 +57,23 @@ def main():
                       user_network)
     
     print network.display()
+    print ""
     
     critical_network = network.set_failure_rates()
-    systems_metrics = critical_network.get_systems_metrics(720)
-    moor_metrics = critical_network.get_subsystem_metrics("M&F sub-system",
-                                                          8760)
+    system = critical_network[14]
     
-    if HAS_PANDAS:
-        
-        systems_df = pd.DataFrame(systems_metrics)
-        moor_df = pd.DataFrame(moor_metrics)
-        
-        systems_df = systems_df.set_index("Link")
-        moor_df = moor_df.set_index("Link")
-        
-        print systems_df
-        print ""
-        print moor_df
+    print system
+    print system.display()
+    print ""
     
-    else:
-        
-        pprint.pprint(systems_metrics)
-        print ""
-        pprint.pprint(moor_metrics)
+    critical_network = network.set_failure_rates(k_factors=k_factors)
+    system = critical_network[14]
+    
+    print system
+    print system.display()
+    print ""
+    
+    print critical_network[10].display()
     
     return
 

@@ -1,0 +1,4 @@
+{'array': {'Export cable': [['id6', 'id4']], 'Substation': ['id3', 'id4', 'id5', 'id4', 'id3'], 'layout': [['device001'],['device002'],['device003']]},
+'device001': {'Elec sub-system': ['id7', 'id6', 'id7']},
+'device002': {'Elec sub-system': ['id7', 'id6', 'id7']},
+'device003': {'Elec sub-system': ['id7', 'id6', 'id7', 'id4']}}

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #    Copyright (C) 2016 Sam Weller, Jon Hardwick
-#    Copyright (C) 2017-2018 Mathew Topper
+#    Copyright (C) 2017-2021 Mathew Topper
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -25,404 +25,416 @@ DTOcean Reliability Assessment Module (RAM)
 """
 
 # Built in modules
-import math
 import logging
-from copy import deepcopy
-from collections import Counter
+from copy import copy, deepcopy
+from collections import OrderedDict
 
-# External modules
-import pandas as pd
-import numpy as np
-
-from .core import Syshier
+from .graph import (Component,
+                    ReliabilityWrapper,
+                    find_all_labels,
+                    find_strings)
+from .parse import (check_nodes,
+                    complete_networks,
+                    combine_networks,
+                    build_pool)
 
 # Start logging
 module_logger = logging.getLogger(__name__)
 
 
-class Variables(object):
-    """
-    #-------------------------------------------------------------------------- 
-    #--------------------------------------------------------------------------
-    #------------------ RAM Variables class
-    #--------------------------------------------------------------------------
-    #-------------------------------------------------------------------------- 
-    Input of variables into this class 
-
-    Args:        
-        systype (str) [-]: system type: options:    'tidefloat', 
-                                                    'tidefixed', 
-                                                    'wavefloat', 
-                                                    'wavefixed'
-        eleclayout (str) [-]: electrical system architecture: options:   'radial'
-                                                                         'singlesidedstring'
-                                                                         'doublesidedstring'
-                                                                         'multiplehubs'
-        mtime (float) [hours]: mission time
-        mttfreq (float) [hours]:  required mean time to failure
-        moorfoundhierdict (dict): array-level mooring and foundation hierarchy: keys: array: substation foundation: substation foundation components (list) [-]
-                                                                                      deviceXXX:  umbilical:   umbilical type (str) [-],
-                                                                                                  foundation: foundation components (list) [-],
-                                                                                                  mooring system: mooring components (list) [-]
-        elechierdict (dict): array-level electrical system hierarchy: keys: array: export cable: export cable components (list) [-],
-                                                                                   substation: substation components (list) [-],
-                                                                                   layout: device layout
-                                                                            deviceXXX: elec sub-system
-        
-    Attributes: 
-        None
-        
-    Functions:    
+class Network(object):
     
-    """
-       
-    def __init__(self, mtime,
-                       systype,
-                       dbdict,
-                       mttfreq=None,
-                       eleclayout=None,
-                       elechierdict=None,
-                       elecbomdict=None,
-                       moorfoundhierdict=None,
-                       moorfoundbomdict=None,
-                       userhierdict=None,
-                       userbomdict=None):
-                           
-        self.mtime = mtime
-        self.systype = systype
-        self.dbdict = dbdict
-        self.mttfreq = mttfreq
-        self.eleclayout = eleclayout
-        self.elechierdict = self.sanitise_dict(elechierdict)
-        self.elecbomdict = deepcopy(elecbomdict)
-        self.moorfoundhierdict = self.sanitise_dict(moorfoundhierdict)
-        self.moorfoundbomdict = deepcopy(moorfoundbomdict)
-        self.userhierdict = deepcopy(userhierdict)
-        self.userbomdict = deepcopy(userbomdict)
+    def __init__(self, database,
+                       electrical_network = None,
+                       moorings_network = None,
+                       user_network = None):
+        
+        if (electrical_network is None and
+            moorings_network is None and
+            user_network is None):
+            
+            err_msg = "At least one network input must be provided"
+            raise ValueError (err_msg)
+        
+        check_nodes(electrical_network, moorings_network)
+        
+        (electrical_network,
+         moorings_network,
+         user_network) = complete_networks(electrical_network,
+                                           moorings_network,
+                                           user_network)
+        
+        (array_hierarcy,
+         device_hierachy) = combine_networks(electrical_network,
+                                             moorings_network,
+                                             user_network)
+        
+        self._db = database
+        self._pool = build_pool(array_hierarcy, device_hierachy)
+        self._subhub_indices = _get_indices(self._pool, "subhub")
+        self._device_indices = _get_indices(self._pool, "device")
+        self._curtailments = _get_curtailments(self._pool)
+        self._system_root = ["device", "subhub", "array"]
+    
+    def set_failure_rates(self, severitylevel='critical',
+                                calcscenario='mean',
+                                k_factors=None,
+                                inplace=False):
+        
+        # pylint: disable=protected-access
+        
+        if inplace:
+            network = self
+        else:
+            network = copy(self)
+            network._pool = deepcopy(self._pool)
+        
+        _set_component_failure_rates(network._pool,
+                                     network._db,
+                                     severitylevel,
+                                     calcscenario,
+                                     k_factors=k_factors)
+        
+        if inplace:
+            result = None
+        else:
+            result = network
+        
+        return result
+    
+    def get_systems_metrics(self, time_hours=None):
+        
+        indices = []
+        systems = []
+        failure_rates = []
+        mttfs = []
+        rpns = []
+        reliabilities = []
+        
+        # Array
+        array = self._pool["array"]
+        indices.append("array")
+        systems.append("array")
+        failure_rates.append(array.get_failure_rate(self._pool))
+        mttfs.append(array.get_mttf(self._pool))
+        rpns.append(array.get_rpn(self._pool))
+        
+        if time_hours is not None:
+            reliabilities.append(array.get_reliability(self._pool, time_hours))
+        
+        # Subhub
+        if self._subhub_indices is not None:
+            
+            subhub_names = sorted(self._subhub_indices.keys())
+            
+            for name in subhub_names:
+                
+                idx = self._subhub_indices[name]
+                subhub = self._pool[idx]
+                
+                indices.append(idx)
+                systems.append(name)
+                failure_rates.append(subhub.get_failure_rate(self._pool))
+                mttfs.append(subhub.get_mttf(self._pool))
+                rpns.append(subhub.get_rpn(self._pool))
+                
+                if time_hours is not None:
+                    reliabilities.append(subhub.get_reliability(self._pool,
+                                                                time_hours))
+        
+        # Devices
+        if self._device_indices is not None:
+            
+            device_names = sorted(self._device_indices.keys())
+            
+            for name in device_names:
+                
+                idx = self._device_indices[name]
+                device = self._pool[idx]
+                
+                indices.append(idx)
+                systems.append(name)
+                failure_rates.append(device.get_failure_rate(self._pool))
+                mttfs.append(device.get_mttf(self._pool))
+                rpns.append(device.get_rpn(self._pool))
+                
+                if time_hours is not None:
+                    reliabilities.append(device.get_reliability(self._pool,
+                                                                time_hours))
+        
+        if set(failure_rates) == set([None]): return None
+        
+        result = OrderedDict()
+        result["Link"] = indices
+        result["System"] = systems
+        result["lambda"] = failure_rates
+        result["MTTF"] = mttfs
+        result["RPN"] = rpns
+    
+        if time_hours is not None:
+            key = "R ({} hours)".format(time_hours)
+            result[key] = reliabilities
+        
+        return result
+    
+    def get_subsystem_metrics(self, subsystem_name, time_hours=None):
+        
+        def get_lowest_system(labels):
+            
+            for system in self._system_root:
+                for label in labels:
+                    if system in label:
+                        return label
+            
+            raise ValueError("No system found")
+        
+        self._check_not_system(subsystem_name)
+    
+        all_labels, indices = find_all_labels(subsystem_name, self._pool)
+        
+        if all_labels is None: return None
+        
+        systems = []
+        failure_rates = []
+        mttfs = []
+        rpns = []
+        reliabilities = []
+        
+        for labels, index in zip(all_labels, indices):
+            
+            link = self._pool[index]
+            
+            systems.append(get_lowest_system(labels))
+            failure_rates.append(link.get_failure_rate(self._pool))
+            mttfs.append(link.get_mttf(self._pool))
+            rpns.append(link.get_rpn(self._pool))
+            
+            if time_hours is not None:
+                reliabilities.append(link.get_reliability(self._pool,
+                                                          time_hours))
+        
+        # Build curtailments
+        curtailments = []
+        
+        for system in systems:
+            
+            if system == "array" or "subhub" in system:
+                curtailments.append(self._curtailments[system])
+                continue
+            
+            if subsystem_name in ("Array elec sub-system",
+                                  "Elec sub-system"):
+                
+                curtailments.append(self._curtailments[system])
+                continue
+            
+            curtailments.append([system])
+        
+        if set(failure_rates) == set([None]): return None
+
+        result = OrderedDict()
+        result["Link"] = indices
+        result["System"] = systems
+        result["lambda"] = failure_rates
+        result["MTTF"] = mttfs
+        result["RPN"] = rpns
+        
+        if time_hours is not None:
+            key = "R ({} hours)".format(time_hours)
+            result[key] = reliabilities
+        
+        result["Curtails"] = curtailments
+        
+        return result
+    
+    def display(self):
+        return self._pool['array'].display(self._pool)
+    
+    def _check_not_system(self, name):
+                
+        if any([x in name for x in self._system_root]):
+            
+            reserved_str = ", ".join(self._system_root)
+            err_str = ("Subsystem name may not contain reserved keywords: "
+                       "{}").format(reserved_str)
+            raise ValueError(err_str)
+    
+    def __getitem__(self, key):
+        return ReliabilityWrapper(self._pool, key)
+    
+    def __len__(self):
+        
+        result = 0
+        
+        for s in self._pool:
+            if self._pool[s].label is not None:
+                result += 1
+        
+        return result
+
+
+def _get_indices(pool, label):
+        
+    labels, indices = find_all_labels(label, pool, partial_match=True)
+    if labels is None: return None
+    
+    subhub_indices = {}
+    subhub_names = [x[-1] for x in labels]
+    
+    for name, idx in zip(subhub_names, indices):
+        subhub_indices[name] = idx
+    
+    return subhub_indices
+
+
+def _get_curtailments(pool):
+    
+    hublist, _ = find_all_labels('device',
+                                 pool,
+                                 partial_match=True)
+    device_strings = find_strings(pool)
+    
+    curtailments = {}
+    device_names = [x[-1] for x in hublist]
+    
+    # Array
+    curtailments["array"] = device_names
+    
+    # Subhubs
+    if len(hublist[0]) == 3:
+        
+        subhub_names = set([x[1] for x in hublist])
+        
+        for name in subhub_names:
+            curtailments[name] = [x[-1] for x in hublist if x[1] == name]
+    
+    # devices
+    for name in device_names:
+        for string in device_strings:
+            
+            if name in string:
+                device_idx = string.index(name)
+                dev_curtails = string[device_idx:]
+                curtailments[name] = dev_curtails
+    
+    return curtailments
+
+
+def _set_component_failure_rates(pool,
+                                 dbdict,
+                                 severitylevel,
+                                 calcscenario,
+                                 k_factors=None):
+    
+    # For components with an id number look up respective failure rates 
+    # otherwise for designed components (i.e. shallow/gravity foundations, 
+    # direct embedment anchors and suction caissons) in addition to 
+    # grouted jointed use generic failure rate of 1.0x10^-4 failures 
+    # per annum (10 / 876 failures per 10^6 hours)
+    
+    # Note:
+    #  * If no data for a particular calculation scenario, failure rate 
+    #    defaults to mean value
+    #  * If no non-critical failure rate data is available use critical values
+    
+    def set_failure_rate(item, failure_rate, severitylevel, k_factors=None):
+        
+        item.set_severity_level(severitylevel)
+        
+        if k_factors is not None and item.marker in k_factors:
+            failure_rate *= k_factors[item.marker]
+        
+        item.set_failure_rate(failure_rate)
         
         return
-        
-    @classmethod
-    def sanitise_dict(cls, raw_dict=None):
-        
-        """Remove any double nested lists where the outer list has length 1"""
-        
-        if raw_dict is None: return None
-        
-        # Copy the input properly
-        copy_dict = deepcopy(raw_dict)
-
-        sane_dict = {}
-        
-        for key, value in copy_dict.iteritems():
-            
-            if key=='layout':
-                pass
-                
-            elif isinstance(value, dict):
-            
-                value = cls.sanitise_dict(value)
-              
-            elif len(value) == 1 and isinstance(value[0], list):
-            
-                value = value[0]
-              
-            sane_dict[key] = value
-     
-        return sane_dict
-
-        
-                
-class Main(Syshier):
-    """
-    #-------------------------------------------------------------------------- 
-    #--------------------------------------------------------------------------
-    #------------------ WP4 Main class
-    #--------------------------------------------------------------------------
-    #-------------------------------------------------------------------------- 
-    This is the main class of the WP4 module which inherits from the 
-    Foundation, Mooring and Substation Foundation sub-modules 
-
-    Functions:
-        moorsub: top level mooring module
-        
-    Args:
-        variables: input variables
     
-    Attributes:
-        deviceid (str) [-]: device identification number
-        
-    Returns:
-        sysmoorinsttab(pandas)       
-        
-    """
+    designed_comps = ["dummy",
+                      "n/a",
+                      "ideal",
+                      "gravity",
+                      "shallowfoundation",
+                      "suctioncaisson",
+                      "directembedment",
+                      "grout"]
     
-    def __init__(self, variables): 
-        super(Main, self).__init__(variables)
-        
-    def __call__(self):
+    critical_key = 'failratecrit'
+    non_critical_key = 'failratenoncrit'
     
-        module_logger.info("Start reliability calculation")
+    if severitylevel == 'critical':
+        severity_key = critical_key
+        other_key = non_critical_key
+        other_severitylevel = 'noncritical'
+    elif severitylevel == 'noncritical':
+        severity_key = non_critical_key
+        other_key = critical_key
+        other_severitylevel = 'critical'
+    else:
+        err_str = ("Argument 'severitylevel' may only take values "
+                   "'critical' or 'noncritical'")
+        raise ValueError(err_str)
+    
+    lower_idx = 0
+    mean_idx = 1
+    upper_idx = 2
+    
+    if calcscenario == 'lower':
+        cs = lower_idx
+    elif calcscenario == 'mean':
+        cs = mean_idx
+    elif calcscenario == 'upper':
+        cs = upper_idx
+    else:
+        err_str = "Argument 'calcscenario' may only take values 0, 1, or 2"
+        raise ValueError(err_str)
+    
+    for item in pool.values():
         
-        self.mttfarrayruns = []
-        self.rarrayruns = []
+        if not isinstance(item, Component):
+            item.set_severity_level(severitylevel)
+            continue
         
-        # """ Time step """        
-        self.dtime = 24
-        self.time = np.linspace(0.0,
-                                2.0 * self._variables.mtime,
-                                int(2 * self._variables.mtime /
-                                                        self.dtime) + 1)
+        if item.label in designed_comps:
+            item.set_severity_level(severitylevel)
+            item.set_failure_rate(10. / 876)
+            continue
         
-        # """ Determine which hierarchies/boms are available and create dummy
-        # versions for any which are missing       
-        if (self._variables.moorfoundhierdict and
-            self._variables.userhierdict and
-            self._variables.elechierdict):
-                
-            self.fullset = True
+        dbitem = deepcopy(dbdict[item.label]['item10'])
+        severity_failure_rates = dbitem[severity_key]
+        
+        if severity_failure_rates[cs] > 0.0:
+            failure_rate = severity_failure_rates[cs]
+            set_failure_rate(item, failure_rate, severitylevel, k_factors)
+            continue
+        
+        if severity_failure_rates[mean_idx] > 0.0:
+            failure_rate = severity_failure_rates[mean_idx]
+            set_failure_rate(item, failure_rate, severitylevel, k_factors)
+            continue
+        
+        other_failure_rates = dbitem[other_key]
+        
+        if other_failure_rates[cs] > 0.0:
             
-        else:
-
-            self.fullset = False
-        
-            devlist = []
-            dummy_hier = {'Dummy sub-system': ['dummy']}
-            dummy_bom =  {'Dummy sub-system':
-                                    {'quantity': Counter({'dummy': 1})}}
+            failure_rate = other_failure_rates[cs]
+            set_failure_rate(item,
+                             failure_rate,
+                             other_severitylevel,
+                             k_factors)
             
-            if self._variables.userhierdict is not None:
-                
-                # """ If the User has specifed device subsystems but no
-                # array-level subsystems generate dummy entries """
-                
-                if not 'array' in self._variables.userhierdict:
-                    self._variables.userhierdict['array'] = \
-                                                        deepcopy(dummy_hier)
-                    self._variables.userbomdict['array'] = \
-                                                        deepcopy(dummy_bom)
-                                                        
-                if not 'subhub001' in self._variables.userhierdict:
-                    
-                    if (self._variables.elechierdict is not None and
-                        'subhub001' in self._variables.elechierdict):  
-                        
-                        for devs in self._variables.elechierdict:
-                            
-                            if devs[:6] == 'subhub':
-                                
-                                self._variables.userhierdict[devs] = \
-                                                        deepcopy(dummy_hier)
-                                self._variables.userbomdict[devs] = \
-                                                        deepcopy(dummy_bom)
-                    
-                    elif (self._variables.moorfoundhierdict is not None and
-                          'subhub001' in self._variables.moorfoundhierdict):
-                        
-                        for devs in self._variables.moorfoundhierdict:
-                            
-                            if devs[:6] == 'subhub':
-                                self._variables.userhierdict[devs] = \
-                                                        deepcopy(dummy_hier)
-                                self._variables.userbomdict[devs] = \
-                                                        deepcopy(dummy_bom)
+            continue
+        
+        if other_failure_rates[mean_idx] > 0.0:
             
-            # Scan available hierarchies for device numbers
-            if self._variables.elechierdict is not None:
-                
-                for devs in self._variables.elechierdict:
-                    
-                    if devs not in devlist: devlist.append(devs)
-                        
-                if self._variables.moorfoundhierdict is None:
-                    
-                    self._variables.moorfoundhierdict = {}
-                    self._variables.moorfoundbomdict = {}
-                                        
-                    for devs in devlist:
-                        
-                        if 'subhub' in devs or devs == 'array':
-                            
-                            self._variables.moorfoundhierdict[devs] = \
-                                    {'Substation foundation': ['dummy']}
-                            self._variables.moorfoundbomdict[devs] = \
-                                    {'Substation foundation': \
-                                        {'substation foundation type': 'dummy',
-                                         'grout type': 'dummy'}}
-                                         
-                        elif devs[:6] == 'device':
-                            
-                            self._variables.moorfoundhierdict[devs] = \
-                                                {'Umbilical': ['dummy'],
-                                                 'Mooring system': ['dummy'],
-                                                 'Foundation': ['dummy']}
-                            self._variables.moorfoundbomdict[devs] = \
-                                {'Umbilical': {'quantity':
-                                                        Counter({'dummy': 1})},
-                                 'Foundation': {'quantity':
-                                                        Counter({'dummy': 1})},
-                                 'Mooring system': {'quantity':
-                                                        Counter({'dummy': 1})}}
-                
-            else:
-                
-                # For when the electrical network hierarchy doesn't exist
-                self._variables.eleclayout = 'radial'
-                self._variables.elechierdict = {}
-                self._variables.elecbomdict = {}
-                
-                if self._variables.moorfoundhierdict is not None:
-                    
-                    for devs in self._variables.moorfoundhierdict:
-                        if devs not in devlist:
-                            devlist.append(devs)
-                            
-                    devsonlylist = [x for x in devlist if x[:6] == 'device']  
-                    
-                if self._variables.userhierdict is not None:
-                    
-                    for devs in self._variables.userhierdict:
-                        if devs not in devlist:
-                            devlist.append(devs)
-                    
-                    devsonlylist = [x for x in devlist if x[:6] == 'device']
-                
-                if 'array' not in devlist:
-                    
-                    self._variables.moorfoundhierdict['array'] = \
-                                    {'Substation foundation': ['dummy']}
-                    self._variables.moorfoundbomdict['array'] = \
-                                    {'Substation foundation':
-                                        {'quantity': Counter({'dummy': 1})}}
-                    
-                    devlist.append('array')
-                
-                for devs in devlist:
-                    
-                    if devs == 'array': 
-                        
-                        self._variables.elechierdict[devs] = \
-                                                {'Export cable': ['dummy'],
-                                                 'Substation': ['dummy'],
-                                                 'layout': [devsonlylist]}
-                        self._variables.elecbomdict[devs] = \
-                            {'Substation': {'quantity': Counter({'dummy': 1})},
-                             'Export cable':
-                                         {'quantity': Counter({'dummy': 1})}}
-                                         
-                    elif devs[:6] == 'subhub':
-                        
-                        self._variables.elechierdict[devs] = \
-                                                    {'Export cable': ['dummy'],
-                                                     'Substation': ['dummy'],
-                                                     'layout': [devsonlylist]}
-                                                     
-                        self._variables.elecbomdict[devs] = \
-                            {'Substation': {'quantity': Counter({'dummy': 1})}}
-                            
-                    elif devs[:6] == 'device':
-                        
-                        self._variables.elechierdict[devs] = \
-                                                {'Elec sub-system': ['dummy']}
-                        self._variables.elecbomdict[devs] = \
-                                            {'quantity': Counter({'dummy': 1})} 
+            failure_rate = other_failure_rates[mean_idx]
+            set_failure_rate(item,
+                             failure_rate,
+                             other_severitylevel,
+                             k_factors)
             
-                if not self._variables.moorfoundhierdict:
-                    
-                    self._variables.moorfoundhierdict = {}
-                    self._variables.moorfoundbomdict = {}
-                    
-                    for devs in devlist:
-                        
-                        if devs == 'array':
-                            
-                            self._variables.moorfoundhierdict[devs] = \
-                                    {'Substation foundation': ['dummy']}
-                            self._variables.moorfoundbomdict[devs] = \
-                                    {'Substation foundation':
-                                        {'quantity': Counter({'dummy': 1})}}
-                                        
-                        elif devs[:6] == 'device':
-                            
-                            self._variables.moorfoundhierdict[devs] = \
-                                                {'Umbilical': ['dummy'],
-                                                 'Mooring system': ['dummy'],
-                                                 'Foundation': ['dummy']}
-                                                 
-                            self._variables.moorfoundbomdict[devs] = \
-                                    {'Umbilical':
-                                        {'quantity': Counter({'dummy': 1})},
-                                     'Foundation':
-                                         {'quantity': Counter({'dummy': 1})},
-                                     'Mooring system':
-                                         {'quantity': Counter({'dummy': 1})}}
-                                         
-            if self._variables.userhierdict is None:
-                
-                self._variables.userhierdict = {}
-                self._variables.userbomdict = {}
-                
-                for devs in devlist:
-                    
-                    self._variables.userhierdict[devs] = deepcopy(dummy_hier)
-                    self._variables.userbomdict[devs] = deepcopy(dummy_bom)
-                    
-                        
-        self.arrayhiersub()
+            continue
         
-        for scen in range(0, 2):
-            
-            if scen == 0:
-                self.severitylevel = 'critical'
-            elif scen == 1:
-                self.severitylevel = 'non-critical'
-                
-            for confid in range(0, 3): 
-                
-                if confid == 0:
-                    self.calcscenario = 'lower'
-                elif confid == 1:
-                    self.calcscenario = 'mean'
-                elif confid == 2:
-                    self.calcscenario = 'upper'
-                    
-                self.arrayfrdictasgn(self.severitylevel, self.calcscenario)
-                self.arrayfrvalues()
-                self.ttf()
-                self.rpn()
-                
-                if self._variables.eleclayout:
-                    
-                    self.mttfarrayruns.append(self.mttfarray[1] / 1e6)
-                    self.rarrayruns.append(self.rarrayvalue[1])
-                    self.reliavals = [self.mttfarrayruns, self.rarrayruns]
-                    
-                else:
-                    
-                    self.reliavals = [['n/a' for col in range(6)]
-                                                        for row in range(2)]
-        
-        index = ['System MTTF (x10^6 hours)',
-                 'Rarray at ' + str(self._variables.mtime) + ' hours']
-        columns = ['critical, lower',
-                   'critical, mean',
-                   'critical, upper',
-                   'non-critical, lower',
-                   'non-critical, mean',
-                   'non-critical, upper']        
-        
-        self.reliatab = pd.DataFrame(self.reliavals,
-                                     index=index,
-                                     columns=columns)
-                                     
-        rsystime = []
-        
-        for ts in self.time:
-            # """ Assumes exponential distribution for complete system
-            # reliability """
-            rsystime.append([ts, math.exp(-(self.mttfarray[1]**-1)  * ts)])
-        
-        mttf = self.mttfarray[1]
-        
-        return mttf, rsystime
- 
+        err_str = ("No failure rate data is set for component "
+                   "'{}'").format(item.label)
+        raise RuntimeError(err_str)
+    
+    return
