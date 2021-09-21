@@ -144,39 +144,6 @@ def test_moorings_only():
     assert pto_metrics is None
 
 
-def test_fixed():
-    
-    dummydb = eval(open(os.path.join(DATA_DIR, 'dummydb.txt')).read())
-    dummymoorhier = eval(open(os.path.join(DATA_DIR,
-                                           'dummymoorhier_fixed.txt')).read())
-    dummymoorbom = eval(open(os.path.join(DATA_DIR,
-                                          'dummymoorbom_fixed.txt')).read())
-    
-    electrical_network = None
-    moorings_network = SubNetwork(dummymoorhier, dummymoorbom)
-    user_network = None
-    
-    network = Network(dummydb,
-                      electrical_network,
-                      moorings_network,
-                      user_network)
-    
-    critical_network = network.set_failure_rates()
-    
-    systems_metrics = critical_network.get_systems_metrics(720)
-    elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
-                                                          8760)
-    foundation_metrics = critical_network.get_subsystem_metrics('Foundation',
-                                                                8760)
-    pto_metrics = critical_network.get_subsystem_metrics('Pto',
-                                                         8760)
-    
-    assert systems_metrics is not None
-    assert elec_metrics is None
-    assert foundation_metrics is not None
-    assert pto_metrics is None
-
-
 def test_user_only():
     
     dummydb = eval(open(os.path.join(DATA_DIR, 'dummydb.txt')).read())
@@ -291,6 +258,72 @@ def test_integerdb_keys():
                                            'dummyelechier_intkey.txt')).read())
     dummyelecbom = eval(open(os.path.join(DATA_DIR,
                                           'dummyelecbom_intkey.txt')).read())
+    
+    electrical_network = SubNetwork(dummyelechier, dummyelecbom)
+    moorings_network = None
+    user_network = None
+    
+    network = Network(dummydb,
+                      electrical_network,
+                      moorings_network,
+                      user_network)
+    
+    critical_network = network.set_failure_rates()
+    
+    systems_metrics = critical_network.get_systems_metrics(720)
+    elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
+                                                          8760)
+    mooring_metrics = critical_network.get_subsystem_metrics('Station keeping',
+                                                             8760)
+    pto_metrics = critical_network.get_subsystem_metrics('Pto',
+                                                         8760)
+    
+    assert systems_metrics is not None
+    assert elec_metrics is not None
+    assert mooring_metrics is None
+    assert pto_metrics is None
+
+
+def test_fixed():
+    
+    dummydb = eval(open(os.path.join(DATA_DIR, 'dummydb.txt')).read())
+    dummymoorhier = eval(open(os.path.join(DATA_DIR,
+                                           'dummymoorhier_fixed.txt')).read())
+    dummymoorbom = eval(open(os.path.join(DATA_DIR,
+                                          'dummymoorbom_fixed.txt')).read())
+    
+    electrical_network = None
+    moorings_network = SubNetwork(dummymoorhier, dummymoorbom)
+    user_network = None
+    
+    network = Network(dummydb,
+                      electrical_network,
+                      moorings_network,
+                      user_network)
+    
+    critical_network = network.set_failure_rates()
+    
+    systems_metrics = critical_network.get_systems_metrics(720)
+    elec_metrics = critical_network.get_subsystem_metrics("Elec sub-system",
+                                                          8760)
+    foundation_metrics = critical_network.get_subsystem_metrics('Foundation',
+                                                                8760)
+    pto_metrics = critical_network.get_subsystem_metrics('Pto',
+                                                         8760)
+    
+    assert systems_metrics is not None
+    assert elec_metrics is None
+    assert foundation_metrics is not None
+    assert pto_metrics is None
+
+
+def test_no_subhubs():
+    
+    dummydb = eval(open(os.path.join(DATA_DIR, 'dummydb.txt')).read())
+    dummyelechier = eval(open(os.path.join(DATA_DIR,
+                                           'dummyelechier_nosubs.txt')).read())
+    dummyelecbom = eval(open(os.path.join(DATA_DIR,
+                                          'dummyelecbom_nosubs.txt')).read())
     
     electrical_network = SubNetwork(dummyelechier, dummyelecbom)
     moorings_network = None

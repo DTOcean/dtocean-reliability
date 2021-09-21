@@ -441,7 +441,10 @@ class Parallel(Link, ReliabilityBase):
                 dot.edge(handle, phandle, arrowhead="none")
                 
                 if isinstance(link, Parallel) and link.label is None:
-                    dot.edge(phandle, check_handle, arrowhead="none", weight="10")
+                    dot.edge(phandle,
+                             check_handle,
+                             arrowhead="none",
+                             weight="10")
                 else:
                     dot.edge(phandle, check_handle, weight="10")
         
