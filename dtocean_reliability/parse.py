@@ -25,7 +25,6 @@ DTOcean Reliability Assessment Module (RAM)
 """
 
 # Built in modules
-import re
 import logging
 from copy import deepcopy
 from collections import Counter, OrderedDict

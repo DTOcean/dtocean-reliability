@@ -20,7 +20,7 @@
 import os
 import glob
 import runpy
-from collections import Counter # Required for eval of text files
+from collections import Counter # pylint: disable=unused-import
 
 import pytest
 

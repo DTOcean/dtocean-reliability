@@ -18,7 +18,7 @@
 # pylint: disable=eval-used
 
 import os
-from collections import Counter
+from collections import Counter # pylint: disable=unused-import
 
 from dtocean_reliability import start_logging, Network, SubNetwork
 

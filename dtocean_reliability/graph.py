@@ -228,44 +228,10 @@ class Serial(Link, ReliabilityBase):
         return 1. / failure_rate
     
     def get_probability_proportion(self, pool, label):
-        
-        if label == self.label:
-            return 1
-        
-        def f(x):
-            fr = pool[x].get_failure_rate(pool)
-            if fr is None: fr = 1
-            return fr
-        
-        failure_rates = {x: f(x) for x in self._items if f(x) is not None}
-        if not failure_rates: return 0
-        
-        indices, rates = zip(*failure_rates.items())
-        
-        rates_sum = sum(rates)
-        rates_norm = [x / rates_sum for x in rates]
-        
-        P = 0
-        
-        for idx, rate in zip(indices, rates_norm):
-            
-            link = pool[idx]
-            
-            if label == link.label:
-                P += rate
-                continue
-            
-            if isinstance(link, Component):
-                continue
-            
-            P += rate * link.get_probability_proportion(pool, label)
-        
-        return P
+        return _ser_par_get_probability_proportion(self, pool, label)
     
     def reset(self, pool):
-        
-        for x in self._items:
-            pool[x].reset(pool)
+        _ser_par_reset(self, pool)
     
     def display(self, pool, pad=0):
         
@@ -396,43 +362,10 @@ class Parallel(Link, ReliabilityBase):
         return binomial(failure_rates)
     
     def get_probability_proportion(self, pool, label):
-        
-        if label == self.label:
-            return 1
-        
-        def f(x):
-            fr = pool[x].get_failure_rate(pool)
-            if fr is None: fr = 1
-            return fr
-        
-        failure_rates = {x: f(x) for x in self._items if f(x) is not None}
-        if not failure_rates: return 0
-        indices, rates = zip(*failure_rates.items())
-        
-        rates_sum = sum(rates)
-        rates_norm = [x / rates_sum for x in rates]
-        
-        P = 0
-        
-        for idx, rate in zip(indices, rates_norm):
-            
-            link = pool[idx]
-            
-            if label == link.label:
-                P += rate
-                continue
-            
-            if isinstance(link, Component):
-                continue
-            
-            P += rate * link.get_probability_proportion(pool, label)
-        
-        return P
+        return _ser_par_get_probability_proportion(self, pool, label)
     
     def reset(self, pool):
-        
-        for x in self._items:
-            pool[x].reset(pool)
+        _ser_par_reset(self, pool)
     
     def display(self, pool, pad=0):
         
@@ -677,3 +610,44 @@ def find_strings(pool, hub_link="array"):
         all_strings = None
     
     return all_strings
+
+
+def _ser_par_get_probability_proportion(link, pool, label):
+    
+    if label == link.label:
+        return 1
+    
+    def f(x):
+        fr = pool[x].get_failure_rate(pool)
+        if fr is None: fr = 1
+        return fr
+    
+    failure_rates = {x: f(x) for x in link.items if f(x) is not None}
+    if not failure_rates: return 0
+    
+    indices, rates = zip(*failure_rates.items())
+    
+    rates_sum = sum(rates)
+    rates_norm = [x / rates_sum for x in rates]
+    
+    P = 0
+    
+    for idx, rate in zip(indices, rates_norm):
+        
+        link = pool[idx]
+        
+        if label == link.label:
+            P += rate
+            continue
+        
+        if isinstance(link, Component):
+            continue
+        
+        P += rate * link.get_probability_proportion(pool, label)
+    
+    return P
+
+
+def _ser_par_reset(link, pool):
+    for x in link.items:
+        pool[x].reset(pool)
