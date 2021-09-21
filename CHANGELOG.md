@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 -   Fixed calculation of "star" network topologies (i.e. when multiple sub-hubs
     connect the devices).
+-   Fixed bug when only moorings data was provided (i.e. substations are
+    present. See https://github.com/DTOcean/dtocean/issues/36
 
 ## [2.0.0] - 2019-03-08
 
