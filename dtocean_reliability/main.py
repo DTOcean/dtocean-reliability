@@ -81,6 +81,8 @@ class Network(object):
                                 k_factors=None,
                                 inplace=False):
         
+        # pylint: disable=protected-access
+        
         if inplace:
             network = self
         else:
@@ -252,7 +254,7 @@ class Network(object):
                 
         if any([x in name for x in self._system_root]):
             
-            reserved_str = ", ".format(self._system_root)
+            reserved_str = ", ".join(self._system_root)
             err_str = ("Subsystem name may not contain reserved keywords: "
                        "{}").format(reserved_str)
             raise ValueError(err_str)

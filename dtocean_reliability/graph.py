@@ -161,23 +161,25 @@ class Component(ReliabilityBase):
         
         if label == self.label:
             return 1
-        else:
-            return 0
+        
+        return 0
     
     def reset(self, pool):
         self._failure_rate = None
     
     def display(self, pool, pad=0):
+        
         if self._failure_rate is not None:
             return "'{}: {:e}'".format(self.label, self.get_failure_rate())
-        else:
-            return "'{}'".format(self.label)
+        
+        return "'{}'".format(self.label)
     
     def graph(self, pool,
                     dot,
                     levels=None,
                     label=None,
-                    force_horizontal=False):
+                    *args,
+                    **kwargs):
         
         handle = self.get_node_name()
         failure_rate = self.get_failure_rate(pool)
@@ -308,7 +310,7 @@ class Serial(Link, ReliabilityBase):
             dot.node(handle, label, style="rounded", shape="box")
             levels -= 1
         
-        if levels == -1 or len(self._items) == 0:
+        if levels == -1 or not self._items:
             return handle
         
         last_handle = handle
@@ -444,7 +446,7 @@ class Parallel(Link, ReliabilityBase):
                 out += "{}: ".format(self.label)
             nllen += len(out)
         
-        for i, item in enumerate(self._items):
+        for item in self._items:
             link = pool[item]
             out += "{} ".format(link.display(pool, nllen)) + \
                                                 "\n" + " " * (nllen - 1)
@@ -454,7 +456,7 @@ class Parallel(Link, ReliabilityBase):
         
         return out
     
-    def graph(self, pool, dot, levels=1, label=None, force_horizontal=False):
+    def graph(self, pool, dot, levels=1, *args, **kwargs):
         
         out_handle = self.get_node_name()
         
@@ -482,7 +484,7 @@ class Parallel(Link, ReliabilityBase):
             
             s.attr(rank='same')
             
-            for i in xrange(len(self._items)):
+            for _ in xrange(len(self._items)):
                 
                 port_handle = self.get_node_name()
                 s.node(port_handle, shape="point", width="0.01")
@@ -516,10 +518,9 @@ class Parallel(Link, ReliabilityBase):
         return out
 
 
-class ReliabilityWrapper(ReliabilityBase):
+class ReliabilityWrapper(object):
     
     def __init__(self, pool, key):
-        ReliabilityBase.__init__(self)
         self._pool = pool
         self._link = self._pool[key]
     
@@ -537,9 +538,6 @@ class ReliabilityWrapper(ReliabilityBase):
     
     def get_probability_proportion(self, label):
         return self._link.get_probability_proportion(self._pool, label)
-    
-    def reset(self):
-        raise NotImplementedError("Reset has no effect on ReliabilityWrapper")
     
     def display(self):
          return self._link.display(self._pool)
@@ -617,7 +615,7 @@ def find_labels(label,
     
     if (link.label is not None and
         ((partial_match and
-          isinstance(link.label, basestring) and
+          isinstance(link.label, basestring) and # pylint: disable=undefined-variable
           label in link.label) or
          (not partial_match and link.label == label))):
         

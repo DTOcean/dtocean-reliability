@@ -15,6 +15,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# pylint: disable=redefined-outer-name
+
 import math
 
 import pytest
@@ -642,11 +644,6 @@ def test_ReliabilityWrapper_get_reliability(wrapper):
 ])
 def test_ReliabilityWrapper_get_probability_proportion(wrapper, label, expected):
     assert wrapper.get_probability_proportion(label) == expected
-
-
-def test_ReliabilityWrapper_reset(wrapper):
-    with pytest.raises(NotImplementedError):
-        wrapper.reset()
 
 
 def test_ReliabilityWrapper_display_none(wrapper):
