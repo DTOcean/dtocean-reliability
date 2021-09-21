@@ -18,15 +18,7 @@
 
 import pytest
 
-from dtocean_reliability.parse import SubNetwork, slugify, check_nodes
-
-
-def test_slugify():
-    
-    fodder = "#happy @gilmore"
-    test = slugify(fodder)
-    
-    assert test == "happy_gilmore"
+from dtocean_reliability.parse import SubNetwork, check_nodes
 
 
 def test_check_nodes_unique():

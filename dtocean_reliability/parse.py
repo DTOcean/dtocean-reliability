@@ -63,17 +63,6 @@ class MarkedSystem(object):
         return self.__str__()
 
 
-def slugify(s):
-    
-    # Remove all non-word characters (everything except numbers and letters)
-    s = re.sub(r"[^\w\s]", '', s)
-    
-    # Replace all runs of whitespace with a single underscore
-    s = re.sub(r"\s+", '_', s)
-    
-    return str(s)
-
-
 def check_nodes(*networks):
     
     isNone = [True for x in networks if x is None]

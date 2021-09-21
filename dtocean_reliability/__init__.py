@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #    Copyright (C) 2016 Sam Weller, Jon Hardwick, Mathew Topper
-#    Copyright (C) 2017-2019 Mathew Topper
+#    Copyright (C) 2017-2021 Mathew Topper
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ from polite.paths import ObjDirectory, UserDataDirectory, DirectoryMap
 from polite.configuration import Logger
 
 # Convenience import
-from .parse import SubNetwork, slugify
+from .parse import SubNetwork
 from .main import Network
 
 # Set default logging handler to avoid "No handler found" warnings.
@@ -35,7 +35,7 @@ except ImportError:
             pass
 
 # credentials
-__all__ = ["Network", "SubNetwork", "slugify"]
+__all__ = ["Network", "SubNetwork"]
 __authors__ = ['DTOcean Developers']
 __version__ = get_distribution('dtocean-reliability').version
 

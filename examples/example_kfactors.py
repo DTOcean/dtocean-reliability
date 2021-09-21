@@ -15,20 +15,12 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# pylint: disable=eval-used
 
 import os
-import csv
-from collections import Counter, namedtuple
+from collections import Counter
 
-from dtocean_reliability import start_logging, slugify, Network, SubNetwork
-
-try:
-    import pandas as pd
-    pd.set_option('display.max_columns', None)
-    HAS_PANDAS = True
-except ImportError:
-    import pprint
-    HAS_PANDAS = False
+from dtocean_reliability import start_logging, Network, SubNetwork
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 DATA_DIR = os.path.join(THIS_DIR, "..", "example_data")
@@ -50,43 +42,31 @@ def main():
     dummyuserbom = eval(open(os.path.join(DATA_DIR,
                                           'dummyuserbom.txt')).read())
     
-    # Pick up installation data
-    dummyelecdata_path = os.path.join(DATA_DIR, 'dummyelecdata.csv')
-    dummyelecdata = []
-    
-    with open(dummyelecdata_path, mode="rb") as infile:
-        
-        reader = csv.reader(infile)
-        slugs = [slugify(x) for x in next(reader)]
-        Data = namedtuple("Data", slugs)
-        
-        for raw in reader:
-            convert = [str, str, float, eval, eval, int]
-            raw = [f(x) for f, x in zip(convert, raw)]
-            data = Data._make(raw)
-            dummyelecdata.append(data)
-    
     electrical_network = SubNetwork(dummyelechier, dummyelecbom)
     moorings_network = SubNetwork(dummymoorhier, dummymoorbom)
     user_network = SubNetwork(dummyuserhier, dummyuserbom)
     
+    k_factors = {12: 2,
+                 13: 2,
+                 14: 2,
+                 15: 2}
+    
     network = Network(dummydb,
                       electrical_network,
                       moorings_network,
-                      user_network,
-                      dummyelecdata)
+                      user_network)
     
     print network.display()
     print ""
     
-    critical_network = network.set_failure_rates(use_kfactors=False)
+    critical_network = network.set_failure_rates()
     system = critical_network[14]
     
     print system
     print system.display()
     print ""
     
-    critical_network = network.set_failure_rates(use_kfactors=True)
+    critical_network = network.set_failure_rates(k_factors=k_factors)
     system = critical_network[14]
     
     print system
@@ -95,9 +75,7 @@ def main():
     
     print critical_network[10].display()
     
-    
     return
-
 
 
 if __name__ == "__main__":

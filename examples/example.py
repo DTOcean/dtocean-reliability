@@ -16,7 +16,6 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 # pylint: disable=eval-used
 
 import os
@@ -96,8 +95,8 @@ def main():
     print ""
     
     weeks = range(1, 13)
-    hours = map(lambda x: x * 24 * 7, weeks)
-    R = map(lambda x: system.get_reliability(x), hours)
+    hours = [x * 24 * 7 for x in weeks]
+    R = [system.get_reliability(x) for x in hours]
     
     print "{:>8}{:>8}".format("Week", "R")
     
