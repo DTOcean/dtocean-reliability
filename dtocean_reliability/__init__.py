@@ -35,6 +35,7 @@ except ImportError:
             pass
 
 # credentials
+__all__ = [Network, SubNetwork, slugify]
 __authors__ = ['DTOcean Developers']
 __version__ = get_distribution('dtocean-reliability').version
 
