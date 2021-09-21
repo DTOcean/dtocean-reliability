@@ -24,6 +24,8 @@ DTOcean Reliability Assessment Module (RAM)
 .. moduleauthor:: Mathew Topper <mathew.topper@dataonlygreater.com>
 """
 
+# pylint: disable=unused-argument
+
 import abc
 import random
 import string
@@ -178,8 +180,7 @@ class Component(ReliabilityBase):
                     dot,
                     levels=None,
                     label=None,
-                    *args,
-                    **kwargs):
+                    force_horizontal=False):
         
         handle = self.get_node_name()
         failure_rate = self.get_failure_rate(pool)
@@ -456,7 +457,7 @@ class Parallel(Link, ReliabilityBase):
         
         return out
     
-    def graph(self, pool, dot, levels=1, *args, **kwargs):
+    def graph(self, pool, dot, levels=1, label=None, force_horizontal=False):
         
         out_handle = self.get_node_name()
         
@@ -468,7 +469,7 @@ class Parallel(Link, ReliabilityBase):
             handle = None
             levels -= 1
         
-        if levels == -1 or len(self._items) == 0:
+        if levels == -1 or not self._items:
             return handle
         
         port_handles = []
@@ -484,7 +485,7 @@ class Parallel(Link, ReliabilityBase):
             
             s.attr(rank='same')
             
-            for _ in xrange(len(self._items)):
+            for _ in xrange(len(self._items)): # pylint: disable=undefined-variable
                 
                 port_handle = self.get_node_name()
                 s.node(port_handle, shape="point", width="0.01")
@@ -540,7 +541,7 @@ class ReliabilityWrapper(object):
         return self._link.get_probability_proportion(self._pool, label)
     
     def display(self):
-         return self._link.display(self._pool)
+        return self._link.display(self._pool)
      
     def __len__(self):
         return len(self._link)
@@ -624,8 +625,8 @@ def find_labels(label,
         
         if check_label not in exclude_labels:
             return check_label, pool_index
-        else:
-            return None, None
+        
+        return None, None
     
     if isinstance(link, Component):
         return None, None
@@ -633,7 +634,7 @@ def find_labels(label,
     if link.label is not None:
         labels.append(link.label)
     
-    for items in link._items:
+    for items in link.items:
         
         test_labels, index = find_labels(label,
                                          pool,
@@ -648,11 +649,11 @@ def find_labels(label,
     return None, None
 
 
-def find_strings(pool, link="array"):
+def find_strings(pool, hub_link="array"):
     
     all_strings = []
     
-    hub = pool[link]
+    hub = pool[hub_link]
     
     for link in hub.items:
         
@@ -664,13 +665,13 @@ def find_strings(pool, link="array"):
         
         if item.label is None or "subhub" in item.label:
             
-            string = find_strings(pool, link)
+            test_string = find_strings(pool, link)
             
-            if string is not None:
-                if "device" in string[0]:
-                    all_strings.append(string)
+            if test_string is not None:
+                if "device" in test_string[0]:
+                    all_strings.append(test_string)
                 else:
-                    all_strings.extend(string)
+                    all_strings.extend(test_string)
     
     if not all_strings:
         all_strings = None

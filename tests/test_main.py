@@ -226,4 +226,4 @@ def test_network_display(database, electrical_network):
 
 def test_network_len(database, electrical_network):
     network = Network(database, electrical_network)
-    assert len(network) > 0
+    assert network

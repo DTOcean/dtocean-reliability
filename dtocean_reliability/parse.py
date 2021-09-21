@@ -81,8 +81,8 @@ def check_nodes(*networks):
         return
     
     test_nodes = [set(network.hierarchy.keys()) for network in networks]
-    unique_nodes = list(reduce(set.union, test_nodes) ^
-                                        reduce(set.intersection, test_nodes))
+    unique_nodes = list(reduce(set.union, test_nodes) ^ # pylint: disable=undefined-variable
+                                        reduce(set.intersection, test_nodes)) # pylint: disable=undefined-variable
     
     if unique_nodes:
         node_str = ", ".join(unique_nodes)
@@ -100,8 +100,8 @@ def mark_networks(*networks):
         
         if hasattr(comps[0], '__iter__'):
             return [[-1] * len(x) for x in comps]
-        else:
-            return [-1] * len(comps)
+        
+        return [-1] * len(comps)
     
     for network in networks:
     
@@ -306,7 +306,7 @@ def combine_networks(electrical_network,
     
     for node, systems in dev_moorings_hierarchy.iteritems():
         
-        if (node[0:6] != 'device'): continue
+        if node[0:6] != 'device': continue
         
         if 'Mooring system' in systems and systems['Mooring system']:
             
@@ -599,7 +599,7 @@ def _strip_dummy(marked_system):
     
     for compid, marker in zip(compsids, markers):
     
-        if isinstance(compid, basestring):
+        if isinstance(compid, basestring): # pylint: disable=undefined-variable
             if compid == "dummy":
                 reduced_ids.append(None)
                 reduced_markers.append(None)

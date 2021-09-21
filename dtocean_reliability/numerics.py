@@ -61,7 +61,7 @@ def binomial(frpara):
         elif frint > 1:
             frgroupsum = sum(frgroup)
         
-        if (frint % 2 == 0):
+        if frint % 2 == 0:
             frgroupsum = -frgroupsum
         
         frterms.append(frgroupsum)
