@@ -10,8 +10,8 @@ reliability of arrays designed by DTOcean. It also acts as a support
 library for the [dtocean-maintenance]( 
 https://github.com/DTOcean/dtocean-maintenance) module. It aggregates the
 component "networks" produced by the [dtocean-electrical]( 
-https://github.com/DTOcean/dtocean-electrical) and [dtocean-reliability]( 
-https://github.com/DTOcean/dtocean-reliability) modules and generates reliability
+https://github.com/DTOcean/dtocean-electrical) and [dtocean-moorings]( 
+https://github.com/DTOcean/dtocean-moorings) modules and generates reliability
 metrics at sub-system level. When combined with the device sub-system 
 reliability values, it can also generate reliability metrics for the array as a 
 whole.
