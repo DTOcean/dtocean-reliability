@@ -383,7 +383,7 @@ def _build_pool_array(array_dict, array_link, pool):
     for system in array_systems:
         
         array_system = array_dict[system]
-        comps = _strip_dummy(array_system)
+        comps = _strip_invalid(array_system)
         if comps is None: continue
         
         
@@ -469,7 +469,7 @@ def _build_pool_subhub(subhub_dict,
     for system in subhub_systems:
         
         subhub_system = subhub_dict[system]
-        comps = _strip_dummy(subhub_system)
+        comps = _strip_invalid(subhub_system)
         if comps is None: continue
         
         system_link = Serial(system)
@@ -519,7 +519,7 @@ def _build_pool_device(device_dict, parent_link, pool):
             
         else:
             
-            comps = _strip_dummy(system)
+            comps = _strip_invalid(system)
             if comps is None: continue
             _build_pool_comps(comps, system_link, temp_pool)
         
@@ -577,7 +577,9 @@ def _build_pool_comps(marked_system, parent_link, pool):
     return
 
 
-def _strip_dummy(marked_system):
+def _strip_invalid(marked_system):
+    
+    invalid = ["dummy", "n/a"]
     
     compsids = marked_system.ids
     markers = marked_system.markers
@@ -588,14 +590,15 @@ def _strip_dummy(marked_system):
     for compid, marker in zip(compsids, markers):
     
         if isinstance(compid, basestring): # pylint: disable=undefined-variable
-            if compid == "dummy":
+            if compid in invalid:
                 reduced_ids.append(None)
                 reduced_markers.append(None)
             else:
                 reduced_ids.append(compid)
                 reduced_markers.append(marker)
         elif isinstance(compid, list):
-            new_comps = _strip_dummy(MarkedSystem(compid, marker))
+            new_comps = _strip_invalid(MarkedSystem(compid, marker))
+            if new_comps is None: continue
             reduced_ids.append(new_comps.ids)
             reduced_markers.append(new_comps.markers)
         else:

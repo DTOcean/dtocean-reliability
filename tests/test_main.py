@@ -86,6 +86,24 @@ def electrical_network():
     return SubNetwork(dummyelechier, dummyelecbom)
 
 
+@pytest.fixture
+def electrical_network_ideal():
+    
+    dummyelechier = {'array': {'Export cable': [['id1']],
+                               'Substation': ['id2'],
+                               'layout': [['device001']]},
+                     'device001': {'Elec sub-system': ['ideal']}}
+    dummyelecbom = {'array': {'Export cable': {'marker': [[0]],
+                                               'quantity':
+                                                       Counter({'id1': 1})},
+                              'Substation': {'marker': [1],
+                                             'quantity': Counter({'id2': 1})}},
+                    'device001': {'marker': [2],
+                                  'quantity': Counter({'ideal': 1})}}
+    
+    return SubNetwork(dummyelechier, dummyelecbom)
+
+
 def test_network_no_inputs(database):
     
     with pytest.raises(ValueError) as excinfo:
@@ -129,6 +147,16 @@ def test_network_set_failure_rates_k_factors(database,
     
     test = network.get_systems_metrics()
     assert np.isclose(test['lambda'][0], 25 / 1e6)
+
+
+def test_network_set_failure_rates_ideal(database,
+                                         electrical_network_ideal):
+    
+    network = Network(database, electrical_network_ideal)
+    network.set_failure_rates(inplace=True)
+    
+    test = network.get_systems_metrics()
+    assert test['MTTF'][1] == float("inf")
 
 
 def test_network_set_failure_rates_severitylevel_unknown(database,

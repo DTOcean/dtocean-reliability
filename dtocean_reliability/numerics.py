@@ -31,6 +31,9 @@ import itertools
 def binomial(frpara):
     # Method from Elsayed, 2012
     
+    # If any components are ideal, then the result is ideal
+    if not all(frpara): return float("inf")
+    
     n = len(frpara)
     frgroup = []
     frterms = []

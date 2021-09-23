@@ -152,6 +152,12 @@ def test_Component_get_mttf(pool_dummy):
     assert test.get_mttf(pool_dummy) == 0.5 * 1e6
 
 
+def test_Component_get_mttf_ideal(pool_dummy):
+    test = Component("test")
+    test.set_failure_rate(0)
+    assert test.get_mttf(pool_dummy) == float("inf")
+
+
 def test_Component_get_rpn_none(pool_dummy):
     test = Component("test")
     assert test.get_rpn(pool_dummy) is None
@@ -502,6 +508,13 @@ def test_Parallel_get_mttf(pool):
     test.add_item(0)
     test.add_item(1)
     assert np.isclose(test.get_mttf(pool), 3e6 / 4.)
+
+
+def test_Parallel_get_mttf_ideal(pool_zero):
+    test = Parallel("test")
+    test.add_item(0)
+    test.add_item(1)
+    assert test.get_mttf(pool_zero) == float("inf")
 
 
 def test_Parallel_get_rpn_none(pool):

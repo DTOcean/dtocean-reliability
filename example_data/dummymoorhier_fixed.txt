@@ -2,7 +2,7 @@
 'subhub001': {'Substation foundation': ['id9']}, 
 'subhub002': {'Substation foundation': ['id9']},
 'subhub003': {'Substation foundation': ['id9']},
-'device001': {'Foundation': [['id9', 'grout'], ['id9', 'grout'], ['id9', 'grout'], ['id9', 'grout']], 'Umbilical': [], 'Mooring system': []},
+'device001': {'Foundation': [['n/a'], ['id9', 'grout'], ['id9', 'grout'], ['id9', 'grout']], 'Umbilical': [], 'Mooring system': []},
 'device002': {'Foundation': [['id9', 'grout'], ['id9', 'grout'], ['id9', 'grout'], ['id9', 'grout']], 'Umbilical': [], 'Mooring system': []},
 'device003': {'Foundation': [['id9', 'grout'], ['id9', 'grout'], ['id9', 'grout'], ['id9', 'grout']], 'Umbilical': [], 'Mooring system': []},
 'device004': {'Foundation': [['id9', 'grout'], ['id9', 'grout'], ['id9', 'grout'], ['id9', 'grout']], 'Umbilical': [], 'Mooring system': []},
