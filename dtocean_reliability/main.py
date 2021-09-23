@@ -348,10 +348,7 @@ def _set_component_failure_rates(pool,
         
         return
     
-    designed_comps = ["dummy",
-                      "n/a",
-                      "ideal",
-                      "gravity",
+    designed_comps = ["gravity",
                       "shallowfoundation",
                       "suctioncaisson",
                       "directembedment",
@@ -396,6 +393,10 @@ def _set_component_failure_rates(pool,
         if item.label in designed_comps:
             item.set_severity_level(severitylevel)
             item.set_failure_rate(10. / 876)
+            continue
+        elif item.label == "ideal":
+            item.set_severity_level(severitylevel)
+            item.set_failure_rate(0.)
             continue
         
         dbitem = deepcopy(dbdict[item.label]['item10'])

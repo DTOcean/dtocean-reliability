@@ -151,13 +151,7 @@ class Component(ReliabilityBase):
         return result
     
     def get_mttf(self, pool):
-        
-        failure_rate = self.get_failure_rate(pool)
-        
-        if failure_rate is None:
-            return None
-        
-        return 1 / failure_rate
+        return _comp_ser_get_mttf(self, pool)
     
     def get_probability_proportion(self, pool, label):
         
@@ -219,13 +213,7 @@ class Serial(Link, ReliabilityBase):
         return sum(failure_rates)
     
     def get_mttf(self, pool):
-        
-        failure_rate = self.get_failure_rate(pool)
-        
-        if failure_rate is None:
-            return None
-        
-        return 1. / failure_rate
+        return _comp_ser_get_mttf(self, pool)
     
     def get_probability_proportion(self, pool, label):
         return _ser_par_get_probability_proportion(self, pool, label)
@@ -613,6 +601,18 @@ def find_strings(pool, hub_link="array"):
         all_strings = None
     
     return all_strings
+
+
+def _comp_ser_get_mttf(link, pool):
+    
+    failure_rate = link.get_failure_rate(pool)
+        
+    if failure_rate is None:
+        return None
+    elif failure_rate == 0:
+        return float("inf")
+    
+    return 1 / failure_rate
 
 
 def _ser_par_get_probability_proportion(link, pool, label):
