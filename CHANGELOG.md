@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 -   Refactored entire module to improve readability.
 -   Changed API to use `SubNetwork` and `Network` classes to collect data and 
     control execution.
+-   Ideal components (with type "ideal") are not treated correctly (i.e. zero
+    failure rate and infinite MTTF).
+-   Components with type "n/a" are now removed from the network.
 
 ### Removed
 
